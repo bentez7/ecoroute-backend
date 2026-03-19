@@ -9,6 +9,7 @@ const FIELDS = {
   AVATAR_URL:     'avatar_url',
   ROLE:           'role',
   ACCOUNT_STATUS: 'account_status',
+  AUTH_PROVIDER:  'auth_provider',
   CREATED_AT:     'created_at',
   UPDATED_AT:     'updated_at',
 };
@@ -24,6 +25,13 @@ const ACCOUNT_STATUSES = {
   DELETED:   'deleted',
 };
 
+const AUTH_PROVIDERS = {
+  EMAIL:  'email',
+  GOOGLE: 'google',
+  GITHUB: 'github',
+  APPLE:  'apple',
+};
+
 function create(overrides = {}) {
   return {
     id:             null,
@@ -32,10 +40,11 @@ function create(overrides = {}) {
     avatar_url:     null,
     role:           ROLES.USER,
     account_status: ACCOUNT_STATUSES.ACTIVE,
+    auth_provider:  AUTH_PROVIDERS.EMAIL,
     created_at:     null,
     updated_at:     null,
     ...overrides,
   };
 }
 
-module.exports = { TABLE, FIELDS, ROLES, ACCOUNT_STATUSES, create };
+module.exports = { TABLE, FIELDS, ROLES, ACCOUNT_STATUSES, AUTH_PROVIDERS, create };
