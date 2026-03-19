@@ -42,6 +42,15 @@ const options = {
             error: { type: 'string', example: 'Error message' },
           },
         },
+        Pagination: {
+          type: 'object',
+          properties: {
+            page:        { type: 'integer', example: 1 },
+            limit:       { type: 'integer', example: 20 },
+            total:       { type: 'integer', example: 22 },
+            total_pages: { type: 'integer', example: 2 },
+          },
+        },
         User: {
           type: 'object',
           properties: {
@@ -71,16 +80,14 @@ const options = {
             updated_at:       { type: 'string', format: 'date-time' },
           },
         },
-        VehicleLookup: {
+        VehicleVariant: {
           type: 'object',
           properties: {
-            make:         { type: 'string', example: 'Perodua' },
-            model:        { type: 'string', example: 'Myvi' },
-            year:         { type: 'integer', example: 2022, nullable: true },
-            fuel_type:    { type: 'string', nullable: true },
-            engine_size:  { type: 'string', nullable: true },
-            transmission: { type: 'string', nullable: true },
-            body_style:   { type: 'string', nullable: true },
+            variant:          { type: 'string', example: '1.5 AV' },
+            year:             { type: 'integer', example: 2022 },
+            vehicle_type:     { type: 'string', enum: ['petrol', 'diesel', 'lpg', 'ev', 'hybrid'] },
+            drivetrain_type:  { type: 'string', enum: ['fwd', 'rwd', 'awd'] },
+            vehicle_mass_kg:  { type: 'number', example: 1050 },
           },
         },
         Trip: {
@@ -168,7 +175,7 @@ const options = {
     },
     tags: [
       { name: 'Auth',     description: 'Authentication — sign up, sign in, sign out' },
-      { name: 'Vehicles', description: 'User vehicle management. Note: vehicle options (make, model, etc.) may be expanded in future to provide dropdown lists via the /options endpoint.' },
+      { name: 'Vehicles', description: 'User vehicle management. The /options endpoint provides vehicle types, drivetrain types, and a list of common Malaysian car makes and models for dropdown selection.' },
       { name: 'Trips',    description: 'Trip CRUD' },
       { name: 'Telemetry', description: 'Raw GPS + motion data ingestion' },
       { name: 'Segments', description: 'Behavioural segments (written by ML repo)' },
@@ -267,7 +274,7 @@ const options = {
       '/api/vehicles/options': {
         get: {
           tags: ['Vehicles'],
-          summary: 'Get vehicle type and drivetrain type options for dropdowns',
+          summary: 'Get vehicle type and drivetrain options for dropdowns',
           description: 'No auth required — returns enum values for the create/edit vehicle form.',
           responses: {
             200: {
@@ -284,6 +291,80 @@ const options = {
                 },
               },
             },
+          },
+        },
+      },
+      '/api/vehicles/makes': {
+        get: {
+          tags: ['Vehicles'],
+          summary: 'Get all available car makes',
+          description: 'No auth required — returns a paginated list of car make names for the first dropdown.',
+          parameters: [
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number (default 1)' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 }, description: 'Items per page (default 20, max 100)' },
+          ],
+          responses: {
+            200: {
+              description: 'Paginated list of make names',
+              content: { 'application/json': { schema: {
+                type: 'object',
+                properties: {
+                  data:       { type: 'array', items: { type: 'string' }, example: ['Perodua', 'Proton', 'Toyota', 'Honda'] },
+                  pagination: { $ref: '#/components/schemas/Pagination' },
+                },
+              } } },
+            },
+          },
+        },
+      },
+      '/api/vehicles/makes/{make}/models': {
+        get: {
+          tags: ['Vehicles'],
+          summary: 'Get all models for a given make',
+          description: 'No auth required — returns paginated model names for the second dropdown.',
+          parameters: [
+            { name: 'make', in: 'path', required: true, schema: { type: 'string' }, example: 'Perodua' },
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number (default 1)' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 }, description: 'Items per page (default 20, max 100)' },
+          ],
+          responses: {
+            200: {
+              description: 'Paginated list of model names',
+              content: { 'application/json': { schema: {
+                type: 'object',
+                properties: {
+                  data:       { type: 'array', items: { type: 'string' }, example: ['Myvi', 'Axia', 'Bezza'] },
+                  pagination: { $ref: '#/components/schemas/Pagination' },
+                },
+              } } },
+            },
+            404: { description: 'Make not found' },
+          },
+        },
+      },
+      '/api/vehicles/makes/{make}/models/{model}/variants': {
+        get: {
+          tags: ['Vehicles'],
+          summary: 'Get all variants for a given make and model',
+          description: 'No auth required — returns paginated variant details to auto-fill the create form.',
+          parameters: [
+            { name: 'make', in: 'path', required: true, schema: { type: 'string' }, example: 'Perodua' },
+            { name: 'model', in: 'path', required: true, schema: { type: 'string' }, example: 'Myvi' },
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number (default 1)' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 }, description: 'Items per page (default 20, max 100)' },
+          ],
+          responses: {
+            200: {
+              description: 'Paginated list of variant objects with pre-filled vehicle details',
+              content: { 'application/json': { schema: {
+                type: 'object',
+                properties: {
+                  data:       { type: 'array', items: { $ref: '#/components/schemas/VehicleVariant' } },
+                  pagination: { $ref: '#/components/schemas/Pagination' },
+                },
+              } } },
+            },
+            404: { description: 'Make or model not found' },
           },
         },
       },
@@ -326,33 +407,6 @@ const options = {
           responses: {
             200: { description: 'Array of vehicles', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Vehicle' } } } } },
             401: { description: 'Unauthorised' },
-          },
-        },
-      },
-      '/api/vehicles/lookup': {
-        post: {
-          tags: ['Vehicles'],
-          summary: 'Lookup vehicle by Malaysian registration number',
-          description: 'Calls the Malaysian vehicle registry API. Returns pre-filled data for the create form — does NOT create a vehicle.',
-          security: [{ bearerAuth: [] }],
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['registration_number'],
-                  properties: {
-                    registration_number: { type: 'string', example: 'ABC1234' },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            200: { description: 'Vehicle lookup data', content: { 'application/json': { schema: { $ref: '#/components/schemas/VehicleLookup' } } } },
-            401: { description: 'Unauthorised' },
-            404: { description: 'Vehicle not found for registration number' },
           },
         },
       },

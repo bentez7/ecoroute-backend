@@ -1,0 +1,925 @@
+[
+  {
+    "make": "Perodua",
+    "models": [
+      {
+        "model": "Myvi",
+        "variants": [
+          { "variant": "1.3 G", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1020 },
+          { "variant": "1.5 H", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1035 },
+          { "variant": "1.5 AV", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1050 }
+        ]
+      },
+      {
+        "model": "Axia",
+        "variants": [
+          { "variant": "1.0 E", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 850 },
+          { "variant": "1.0 SE", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 860 },
+          { "variant": "1.0 AV", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 870 }
+        ]
+      },
+      {
+        "model": "Bezza",
+        "variants": [
+          { "variant": "1.0 G", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 950 },
+          { "variant": "1.3 X", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 970 },
+          { "variant": "1.3 AV", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 980 }
+        ]
+      },
+      {
+        "model": "Aruz",
+        "variants": [
+          { "variant": "1.5 X", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1260 },
+          { "variant": "1.5 AV", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1280 }
+        ]
+      },
+      {
+        "model": "Ativa",
+        "variants": [
+          { "variant": "1.0T X", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1035 },
+          { "variant": "1.0T H", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1045 },
+          { "variant": "1.0T AV", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1055 }
+        ]
+      },
+      {
+        "model": "Alza",
+        "variants": [
+          { "variant": "1.5 X", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1130 },
+          { "variant": "1.5 H", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1140 },
+          { "variant": "1.5 AV", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1155 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Proton",
+    "models": [
+      {
+        "model": "Saga",
+        "variants": [
+          { "variant": "1.3 Standard MT", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1065 },
+          { "variant": "1.3 Standard AT", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1075 },
+          { "variant": "1.3 Premium AT", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1085 }
+        ]
+      },
+      {
+        "model": "Persona",
+        "variants": [
+          { "variant": "1.6 Standard", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1145 },
+          { "variant": "1.6 Executive", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1155 },
+          { "variant": "1.6 Premium", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1165 }
+        ]
+      },
+      {
+        "model": "Iriz",
+        "variants": [
+          { "variant": "1.3 Standard", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1060 },
+          { "variant": "1.6 Executive", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1090 },
+          { "variant": "1.6 Premium", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1100 }
+        ]
+      },
+      {
+        "model": "X50",
+        "variants": [
+          { "variant": "1.5T Standard", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1310 },
+          { "variant": "1.5T Executive", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1320 },
+          { "variant": "1.5 TGDi Flagship", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1350 }
+        ]
+      },
+      {
+        "model": "X70",
+        "variants": [
+          { "variant": "1.5 TGDi Standard", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1520 },
+          { "variant": "1.5 TGDi Executive", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1530 },
+          { "variant": "1.5 TGDi Flagship", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1550 }
+        ]
+      },
+      {
+        "model": "X90",
+        "variants": [
+          { "variant": "1.5 TGDi Standard", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1680 },
+          { "variant": "1.5 TGDi Flagship", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1710 }
+        ]
+      },
+      {
+        "model": "S70",
+        "variants": [
+          { "variant": "1.5T Standard", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1310 },
+          { "variant": "1.5T Executive", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1325 },
+          { "variant": "1.5 TGDi Flagship", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1355 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Toyota",
+    "models": [
+      {
+        "model": "Vios",
+        "variants": [
+          { "variant": "1.5 J", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1100 },
+          { "variant": "1.5 E", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1110 },
+          { "variant": "1.5 G", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1125 }
+        ]
+      },
+      {
+        "model": "Yaris",
+        "variants": [
+          { "variant": "1.5 E", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1060 },
+          { "variant": "1.5 G", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1075 }
+        ]
+      },
+      {
+        "model": "Camry",
+        "variants": [
+          { "variant": "2.5 V", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1570 },
+          { "variant": "2.5 HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1610 }
+        ]
+      },
+      {
+        "model": "Corolla",
+        "variants": [
+          { "variant": "1.8 G", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1345 },
+          { "variant": "1.8 HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1385 }
+        ]
+      },
+      {
+        "model": "Hilux",
+        "variants": [
+          { "variant": "2.4 E MT", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "rwd", "vehicle_mass_kg": 1840 },
+          { "variant": "2.4 V AT", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 1955 },
+          { "variant": "2.8 Rogue", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2080 }
+        ]
+      },
+      {
+        "model": "Fortuner",
+        "variants": [
+          { "variant": "2.7 SRZ", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1960 },
+          { "variant": "2.8 VRZ", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2120 }
+        ]
+      },
+      {
+        "model": "Innova",
+        "variants": [
+          { "variant": "2.0 X", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1580 }
+        ]
+      },
+      {
+        "model": "Veloz",
+        "variants": [
+          { "variant": "1.5 AT", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1135 }
+        ]
+      },
+      {
+        "model": "RAV4",
+        "variants": [
+          { "variant": "2.0 AT", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1560 },
+          { "variant": "2.5 HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "awd", "vehicle_mass_kg": 1690 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Honda",
+    "models": [
+      {
+        "model": "City",
+        "variants": [
+          { "variant": "1.5 S", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1129 },
+          { "variant": "1.5 E", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1140 },
+          { "variant": "1.5 V", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1155 },
+          { "variant": "1.5 RS e:HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1258 }
+        ]
+      },
+      {
+        "model": "Civic",
+        "variants": [
+          { "variant": "1.5 TC", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1339 },
+          { "variant": "1.5 TC-P", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1355 },
+          { "variant": "2.0 RS e:HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1460 }
+        ]
+      },
+      {
+        "model": "Accord",
+        "variants": [
+          { "variant": "1.5 TC", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1478 },
+          { "variant": "1.5 TC-P", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1490 }
+        ]
+      },
+      {
+        "model": "HR-V",
+        "variants": [
+          { "variant": "1.5 S", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1316 },
+          { "variant": "1.5 V", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1335 },
+          { "variant": "1.5 RS e:HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1400 }
+        ]
+      },
+      {
+        "model": "CR-V",
+        "variants": [
+          { "variant": "1.5 TC", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1558 },
+          { "variant": "1.5 TC-P 4WD", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1630 }
+        ]
+      },
+      {
+        "model": "BR-V",
+        "variants": [
+          { "variant": "1.5 E", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1175 },
+          { "variant": "1.5 V", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1195 }
+        ]
+      },
+      {
+        "model": "WR-V",
+        "variants": [
+          { "variant": "1.5 S", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1060 },
+          { "variant": "1.5 V", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1080 },
+          { "variant": "1.5 RS", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1090 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Nissan",
+    "models": [
+      {
+        "model": "Almera",
+        "variants": [
+          { "variant": "1.0 VL", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1095 },
+          { "variant": "1.0 VLP", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1110 }
+        ]
+      },
+      {
+        "model": "Serena",
+        "variants": [
+          { "variant": "2.0 S-Hybrid", "year": 2022, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1720 }
+        ]
+      },
+      {
+        "model": "X-Trail",
+        "variants": [
+          { "variant": "2.0 2WD", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1490 },
+          { "variant": "2.0 4WD", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1550 }
+        ]
+      },
+      {
+        "model": "Navara",
+        "variants": [
+          { "variant": "2.5 SE", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "rwd", "vehicle_mass_kg": 1860 },
+          { "variant": "2.5 VL 4WD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2020 },
+          { "variant": "2.5 PRO-4X", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2050 }
+        ]
+      },
+      {
+        "model": "Kicks",
+        "variants": [
+          { "variant": "1.6 e-POWER", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1360 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Mazda",
+    "models": [
+      {
+        "model": "Mazda 2",
+        "variants": [
+          { "variant": "1.5 Hatchback", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1070 },
+          { "variant": "1.5 Sedan", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1060 }
+        ]
+      },
+      {
+        "model": "Mazda 3",
+        "variants": [
+          { "variant": "1.5 Hatchback", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1330 },
+          { "variant": "2.0 Sedan", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1370 }
+        ]
+      },
+      {
+        "model": "CX-3",
+        "variants": [
+          { "variant": "2.0 Core", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1240 }
+        ]
+      },
+      {
+        "model": "CX-5",
+        "variants": [
+          { "variant": "2.0 GL", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1508 },
+          { "variant": "2.5 GLS", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1550 },
+          { "variant": "2.2 GLS AWD Diesel", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 1660 }
+        ]
+      },
+      {
+        "model": "CX-30",
+        "variants": [
+          { "variant": "2.0 Core", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1360 }
+        ]
+      },
+      {
+        "model": "CX-8",
+        "variants": [
+          { "variant": "2.5 GL", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1680 },
+          { "variant": "2.2 Diesel AWD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 1830 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Hyundai",
+    "models": [
+      {
+        "model": "Elantra",
+        "variants": [
+          { "variant": "1.6 Executive", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1290 }
+        ]
+      },
+      {
+        "model": "Tucson",
+        "variants": [
+          { "variant": "1.6T Executive", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1540 },
+          { "variant": "2.0 CRDi Premium AWD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 1690 }
+        ]
+      },
+      {
+        "model": "Santa Fe",
+        "variants": [
+          { "variant": "2.5 Premium", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1770 },
+          { "variant": "2.2 CRDi Premium AWD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 1910 }
+        ]
+      },
+      {
+        "model": "Kona",
+        "variants": [
+          { "variant": "1.6T", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1340 },
+          { "variant": "Electric", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 1685 }
+        ]
+      },
+      {
+        "model": "Ioniq 5",
+        "variants": [
+          { "variant": "Standard Range", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 1860 },
+          { "variant": "Long Range AWD", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2060 }
+        ]
+      },
+      {
+        "model": "Ioniq 6",
+        "variants": [
+          { "variant": "Long Range RWD", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 1930 },
+          { "variant": "Long Range AWD", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2080 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Kia",
+    "models": [
+      {
+        "model": "Cerato",
+        "variants": [
+          { "variant": "1.6 EX", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1270 }
+        ]
+      },
+      {
+        "model": "Sportage",
+        "variants": [
+          { "variant": "1.6T GT-Line", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1575 },
+          { "variant": "2.0 CRDi AWD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 1735 }
+        ]
+      },
+      {
+        "model": "Sorento",
+        "variants": [
+          { "variant": "2.5 Premium", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1780 },
+          { "variant": "2.2 CRDi AWD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 1930 }
+        ]
+      },
+      {
+        "model": "Carnival",
+        "variants": [
+          { "variant": "2.2 CRDi", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "fwd", "vehicle_mass_kg": 2065 }
+        ]
+      },
+      {
+        "model": "Seltos",
+        "variants": [
+          { "variant": "1.6T GT-Line", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1370 }
+        ]
+      },
+      {
+        "model": "EV6",
+        "variants": [
+          { "variant": "Standard Range RWD", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 1820 },
+          { "variant": "Long Range AWD GT-Line", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2090 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Mitsubishi",
+    "models": [
+      {
+        "model": "Triton",
+        "variants": [
+          { "variant": "2.4 VGT AT", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "rwd", "vehicle_mass_kg": 1880 },
+          { "variant": "2.4 VGT Athlete 4WD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2015 }
+        ]
+      },
+      {
+        "model": "Outlander",
+        "variants": [
+          { "variant": "2.0 4WD", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1545 }
+        ]
+      },
+      {
+        "model": "ASX",
+        "variants": [
+          { "variant": "2.0 4WD", "year": 2022, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1440 }
+        ]
+      },
+      {
+        "model": "Xpander",
+        "variants": [
+          { "variant": "1.5 AT", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1230 }
+        ]
+      },
+      {
+        "model": "Pajero Sport",
+        "variants": [
+          { "variant": "2.4 4WD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2050 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "BMW",
+    "models": [
+      {
+        "model": "1 Series",
+        "variants": [
+          { "variant": "118i M Sport", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1395 }
+        ]
+      },
+      {
+        "model": "3 Series",
+        "variants": [
+          { "variant": "320i M Sport", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1555 },
+          { "variant": "330i M Sport", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1575 },
+          { "variant": "330e M Sport", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "rwd", "vehicle_mass_kg": 1815 }
+        ]
+      },
+      {
+        "model": "5 Series",
+        "variants": [
+          { "variant": "520i M Sport", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1710 },
+          { "variant": "530e M Sport", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "rwd", "vehicle_mass_kg": 1940 }
+        ]
+      },
+      {
+        "model": "X1",
+        "variants": [
+          { "variant": "sDrive18i", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1555 }
+        ]
+      },
+      {
+        "model": "X3",
+        "variants": [
+          { "variant": "xDrive20i", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1780 },
+          { "variant": "xDrive30e", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "awd", "vehicle_mass_kg": 2065 }
+        ]
+      },
+      {
+        "model": "X5",
+        "variants": [
+          { "variant": "xDrive40i", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 2155 },
+          { "variant": "xDrive45e", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "awd", "vehicle_mass_kg": 2510 }
+        ]
+      },
+      {
+        "model": "iX",
+        "variants": [
+          { "variant": "xDrive40", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2365 },
+          { "variant": "xDrive50", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2510 }
+        ]
+      },
+      {
+        "model": "i4",
+        "variants": [
+          { "variant": "eDrive35", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 2050 },
+          { "variant": "M50", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2215 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Mercedes-Benz",
+    "models": [
+      {
+        "model": "A-Class",
+        "variants": [
+          { "variant": "A200", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1395 },
+          { "variant": "A250 AMG Line", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1435 }
+        ]
+      },
+      {
+        "model": "C-Class",
+        "variants": [
+          { "variant": "C200", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1550 },
+          { "variant": "C300", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1590 },
+          { "variant": "C350e", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "rwd", "vehicle_mass_kg": 1870 }
+        ]
+      },
+      {
+        "model": "E-Class",
+        "variants": [
+          { "variant": "E200", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1680 },
+          { "variant": "E300", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1720 }
+        ]
+      },
+      {
+        "model": "GLA",
+        "variants": [
+          { "variant": "GLA200", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1510 },
+          { "variant": "GLA250 AMG", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1610 }
+        ]
+      },
+      {
+        "model": "GLC",
+        "variants": [
+          { "variant": "GLC200", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1790 },
+          { "variant": "GLC300 4MATIC", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1890 }
+        ]
+      },
+      {
+        "model": "GLE",
+        "variants": [
+          { "variant": "GLE300d 4MATIC", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2195 },
+          { "variant": "GLE450 4MATIC", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 2210 }
+        ]
+      },
+      {
+        "model": "EQA",
+        "variants": [
+          { "variant": "EQA250", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 2040 }
+        ]
+      },
+      {
+        "model": "EQB",
+        "variants": [
+          { "variant": "EQB250", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 2100 },
+          { "variant": "EQB350 4MATIC", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2175 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Volkswagen",
+    "models": [
+      {
+        "model": "Polo",
+        "variants": [
+          { "variant": "1.0 TSI Life", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1175 }
+        ]
+      },
+      {
+        "model": "Golf",
+        "variants": [
+          { "variant": "1.4 TSI Life", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1310 },
+          { "variant": "2.0 GTI", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1430 },
+          { "variant": "2.0 R AWD", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1535 }
+        ]
+      },
+      {
+        "model": "Passat",
+        "variants": [
+          { "variant": "2.0 TSI Elegance", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1535 }
+        ]
+      },
+      {
+        "model": "Tiguan",
+        "variants": [
+          { "variant": "1.4 TSI Elegance", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1545 },
+          { "variant": "2.0 TSI R-Line 4MOTION", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1680 }
+        ]
+      },
+      {
+        "model": "Arteon",
+        "variants": [
+          { "variant": "2.0 TSI R-Line", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1575 }
+        ]
+      },
+      {
+        "model": "ID.4",
+        "variants": [
+          { "variant": "Pro", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 2124 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Suzuki",
+    "models": [
+      {
+        "model": "Swift",
+        "variants": [
+          { "variant": "1.2 GL", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 920 },
+          { "variant": "1.2 GLX", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 945 }
+        ]
+      },
+      {
+        "model": "Jimny",
+        "variants": [
+          { "variant": "1.5 AT", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1110 }
+        ]
+      },
+      {
+        "model": "Vitara",
+        "variants": [
+          { "variant": "1.4T GLX", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1190 }
+        ]
+      },
+      {
+        "model": "S-Cross",
+        "variants": [
+          { "variant": "1.5 AT", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1175 }
+        ]
+      },
+      {
+        "model": "Ertiga",
+        "variants": [
+          { "variant": "1.5 GL", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1120 },
+          { "variant": "1.5 GX", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1135 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Subaru",
+    "models": [
+      {
+        "model": "XV",
+        "variants": [
+          { "variant": "2.0i-P", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1430 }
+        ]
+      },
+      {
+        "model": "Forester",
+        "variants": [
+          { "variant": "2.0i-L", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1550 },
+          { "variant": "2.0i-S", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1570 }
+        ]
+      },
+      {
+        "model": "Outback",
+        "variants": [
+          { "variant": "2.5i-T", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1680 }
+        ]
+      },
+      {
+        "model": "WRX",
+        "variants": [
+          { "variant": "2.4T", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 1580 }
+        ]
+      },
+      {
+        "model": "BRZ",
+        "variants": [
+          { "variant": "2.4 AT", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "rwd", "vehicle_mass_kg": 1280 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Ford",
+    "models": [
+      {
+        "model": "Ranger",
+        "variants": [
+          { "variant": "2.0 XLT+", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "rwd", "vehicle_mass_kg": 2045 },
+          { "variant": "2.0 Wildtrak 4WD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2220 },
+          { "variant": "3.0 V6 Wildtrak 4WD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2340 }
+        ]
+      },
+      {
+        "model": "Everest",
+        "variants": [
+          { "variant": "2.0 Trend", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "rwd", "vehicle_mass_kg": 2130 },
+          { "variant": "2.0 Titanium+ 4WD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2310 }
+        ]
+      },
+      {
+        "model": "Territory",
+        "variants": [
+          { "variant": "1.5T Titanium", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1505 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Isuzu",
+    "models": [
+      {
+        "model": "D-Max",
+        "variants": [
+          { "variant": "1.9 Standard", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "rwd", "vehicle_mass_kg": 1820 },
+          { "variant": "3.0 X-Terrain 4WD", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2080 }
+        ]
+      },
+      {
+        "model": "MU-X",
+        "variants": [
+          { "variant": "1.9 4x2", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "rwd", "vehicle_mass_kg": 1925 },
+          { "variant": "3.0 4x4", "year": 2023, "vehicle_type": "diesel", "drivetrain_type": "awd", "vehicle_mass_kg": 2110 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Volvo",
+    "models": [
+      {
+        "model": "S60",
+        "variants": [
+          { "variant": "B5 Plus", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1715 }
+        ]
+      },
+      {
+        "model": "S90",
+        "variants": [
+          { "variant": "B5 Plus", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1810 },
+          { "variant": "Recharge T8 AWD", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "awd", "vehicle_mass_kg": 2100 }
+        ]
+      },
+      {
+        "model": "XC40",
+        "variants": [
+          { "variant": "B5 Plus", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1680 },
+          { "variant": "Recharge Pure Electric", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 2030 }
+        ]
+      },
+      {
+        "model": "XC60",
+        "variants": [
+          { "variant": "B5 Plus", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1836 },
+          { "variant": "Recharge T8 AWD", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "awd", "vehicle_mass_kg": 2155 }
+        ]
+      },
+      {
+        "model": "XC90",
+        "variants": [
+          { "variant": "B5 Plus", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1955 },
+          { "variant": "Recharge T8 AWD", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "awd", "vehicle_mass_kg": 2325 }
+        ]
+      },
+      {
+        "model": "C40 Recharge",
+        "variants": [
+          { "variant": "Single Motor", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 2030 },
+          { "variant": "Twin Motor AWD", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2185 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Peugeot",
+    "models": [
+      {
+        "model": "208",
+        "variants": [
+          { "variant": "1.2 PureTech Active", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1050 }
+        ]
+      },
+      {
+        "model": "2008",
+        "variants": [
+          { "variant": "1.2 PureTech Active", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1210 }
+        ]
+      },
+      {
+        "model": "3008",
+        "variants": [
+          { "variant": "1.6 THP Allure", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1445 }
+        ]
+      },
+      {
+        "model": "5008",
+        "variants": [
+          { "variant": "1.6 THP Allure", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1530 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Chery",
+    "models": [
+      {
+        "model": "Omoda 5",
+        "variants": [
+          { "variant": "1.5T", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1370 }
+        ]
+      },
+      {
+        "model": "Tiggo 4 Pro",
+        "variants": [
+          { "variant": "1.5T", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1340 }
+        ]
+      },
+      {
+        "model": "Tiggo 7 Pro",
+        "variants": [
+          { "variant": "1.5T", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1495 }
+        ]
+      },
+      {
+        "model": "Tiggo 8 Pro",
+        "variants": [
+          { "variant": "1.6T", "year": 2024, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1680 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "GWM",
+    "models": [
+      {
+        "model": "Haval H6",
+        "variants": [
+          { "variant": "1.5T", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1530 },
+          { "variant": "HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1690 }
+        ]
+      },
+      {
+        "model": "Haval Jolion",
+        "variants": [
+          { "variant": "1.5T", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "fwd", "vehicle_mass_kg": 1380 },
+          { "variant": "HEV", "year": 2023, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1540 }
+        ]
+      },
+      {
+        "model": "Ora Good Cat",
+        "variants": [
+          { "variant": "400 Pro", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 1555 },
+          { "variant": "500 Ultra", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 1610 }
+        ]
+      },
+      {
+        "model": "Tank 300",
+        "variants": [
+          { "variant": "2.0T", "year": 2023, "vehicle_type": "petrol", "drivetrain_type": "awd", "vehicle_mass_kg": 2090 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "BYD",
+    "models": [
+      {
+        "model": "Atto 3",
+        "variants": [
+          { "variant": "Standard Range", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 1750 },
+          { "variant": "Extended Range", "year": 2023, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 1875 }
+        ]
+      },
+      {
+        "model": "Dolphin",
+        "variants": [
+          { "variant": "Standard", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 1405 },
+          { "variant": "Extended", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 1520 }
+        ]
+      },
+      {
+        "model": "Seal",
+        "variants": [
+          { "variant": "Dynamic", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 1885 },
+          { "variant": "Premium AWD", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 2150 }
+        ]
+      },
+      {
+        "model": "Seal U",
+        "variants": [
+          { "variant": "DM-i", "year": 2024, "vehicle_type": "hybrid", "drivetrain_type": "fwd", "vehicle_mass_kg": 1800 },
+          { "variant": "EV", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "fwd", "vehicle_mass_kg": 2035 }
+        ]
+      }
+    ]
+  },
+  {
+    "make": "Tesla",
+    "models": [
+      {
+        "model": "Model 3",
+        "variants": [
+          { "variant": "Standard Range Plus", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 1760 },
+          { "variant": "Long Range AWD", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 1830 },
+          { "variant": "Performance", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 1836 }
+        ]
+      },
+      {
+        "model": "Model Y",
+        "variants": [
+          { "variant": "RWD", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "rwd", "vehicle_mass_kg": 1909 },
+          { "variant": "Long Range AWD", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 1979 },
+          { "variant": "Performance", "year": 2024, "vehicle_type": "ev", "drivetrain_type": "awd", "vehicle_mass_kg": 1995 }
+        ]
+      }
+    ]
+  }
+]

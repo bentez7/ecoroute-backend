@@ -20,16 +20,4 @@ function vehicleListDTO(vehicles) {
   return vehicles.map(vehicleDTO);
 }
 
-function vehicleLookupDTO(registryData) {
-  return {
-    make:         registryData.make,
-    model:        registryData.model,
-    year:         registryData.year,
-    fuel_type:    registryData.fuel_type,
-    engine_size:  registryData.engine_size,
-    transmission: registryData.transmission,
-    body_style:   registryData.body_style,
-  };
-}
-
-module.exports = { vehicleDTO, vehicleListDTO, vehicleLookupDTO };
+module.exports = { vehicleDTO, vehicleListDTO };

@@ -2,9 +2,10 @@
 
 const { VehicleService }  = require('@services');
 const { VehicleDTO }      = require('@dto');
-const VehicleRegistry     = require('../integrations/VehicleRegistry.integration');
 const Response            = require('@helpers/Response.helper');
 const { VEHICLE_TYPES, DRIVETRAIN_TYPES } = require('@database').models.VehicleModel;
+const { paginate }        = require('@helpers/Pagination.helper');
+const vehicleMakes        = require('../data/vehicle-makes.json');
 
 async function createVehicle(req, res) {
   const { make, model, year, vehicle_type, vehicle_mass_kg, drag_coefficient, drivetrain_type } = req.body;
@@ -74,22 +75,39 @@ async function deleteVehicle(req, res) {
   return Response.success(res, { message: 'Vehicle deleted' });
 }
 
-async function lookupVehicle(req, res) {
-  const { registration_number } = req.body;
-
-  try {
-    const registryData = await VehicleRegistry.lookupByPlate(registration_number);
-    return Response.success(res, VehicleDTO.vehicleLookupDTO(registryData));
-  } catch (err) {
-    return Response.error(res, err.message || 'Vehicle lookup failed', 404);
-  }
-}
-
-function getOptions(req, res) {
+function getOptions(_req, res) {
   return Response.success(res, {
     vehicle_types:    Object.values(VEHICLE_TYPES),
     drivetrain_types: Object.values(DRIVETRAIN_TYPES),
   });
 }
 
-module.exports = { createVehicle, getVehicles, getVehicle, updateVehicle, setDefaultVehicle, deleteVehicle, lookupVehicle, getOptions };
+function getMakes(req, res) {
+  const makes = vehicleMakes.map(entry => entry.make);
+  return Response.success(res, paginate(makes, req.query));
+}
+
+function getModels(req, res) {
+  const { make } = req.params;
+  const entry = vehicleMakes.find(e => e.make.toLowerCase() === make.toLowerCase());
+  if (!entry) return Response.error(res, 'Make not found', 404);
+
+  const models = entry.models.map(m => m.model);
+  return Response.success(res, paginate(models, req.query));
+}
+
+function getVariants(req, res) {
+  const { make, model } = req.params;
+  const makeEntry = vehicleMakes.find(e => e.make.toLowerCase() === make.toLowerCase());
+  if (!makeEntry) return Response.error(res, 'Make not found', 404);
+
+  const modelEntry = makeEntry.models.find(m => m.model.toLowerCase() === model.toLowerCase());
+  if (!modelEntry) return Response.error(res, 'Model not found', 404);
+
+  return Response.success(res, paginate(modelEntry.variants, req.query));
+}
+
+module.exports = {
+  createVehicle, getVehicles, getVehicle, updateVehicle, setDefaultVehicle, deleteVehicle,
+  getOptions, getMakes, getModels, getVariants,
+};

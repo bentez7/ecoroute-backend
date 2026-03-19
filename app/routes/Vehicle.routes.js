@@ -45,16 +45,17 @@ const idValidation = [
   param('id').isUUID().withMessage('Invalid vehicle ID'),
 ];
 
-const lookupValidation = [
-  body('registration_number').trim().notEmpty().withMessage('Registration number is required'),
-];
+// --- Public routes (no auth) ---
 
-// --- Routes ---
+router.get('/options',                  VehicleController.getOptions);
+router.get('/makes',                    VehicleController.getMakes);
+router.get('/makes/:make/models',       VehicleController.getModels);
+router.get('/makes/:make/models/:model/variants', VehicleController.getVariants);
 
-router.get('/options',       VehicleController.getOptions);
+// --- Protected routes ---
+
 router.post('/',             requireAuth, createValidation, handleValidationErrors, VehicleController.createVehicle);
 router.get('/',              requireAuth, VehicleController.getVehicles);
-router.post('/lookup',       requireAuth, lookupValidation, handleValidationErrors, VehicleController.lookupVehicle);
 router.get('/:id',           requireAuth, idValidation, handleValidationErrors, VehicleController.getVehicle);
 router.patch('/:id',         requireAuth, updateValidation, handleValidationErrors, VehicleController.updateVehicle);
 router.patch('/:id/default', requireAuth, idValidation, handleValidationErrors, VehicleController.setDefaultVehicle);
