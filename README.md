@@ -132,6 +132,29 @@ server.js            # Entry point
 
 ---
 
+## API Documentation (Swagger UI)
+
+The interactive API documentation is served via Swagger UI. Once the server is running, open:
+
+```
+http://localhost:3000/api-docs
+```
+
+You can browse all endpoints, view request/response schemas, and test the API directly from the browser.
+
+### How to authenticate in Swagger UI
+
+Most endpoints require a Supabase JWT. To test them:
+
+1. Call `POST /api/auth/signin` in Swagger UI (no auth required) and copy the `access_token` from the response
+2. Click the **Authorize** button at the top of the Swagger page
+3. Paste the token into the **bearerAuth** field (do not include the word "Bearer" — Swagger adds it automatically)
+4. Click **Authorize** → all subsequent requests will include the token
+
+For ML writeback endpoints, use the **serviceRoleKey** field and paste your `SUPABASE_SERVICE_ROLE_KEY` value.
+
+---
+
 ## Getting Started
 
 ### Prerequisites

@@ -8,14 +8,14 @@
     "dev": "nodemon server.js"
   },
   "_moduleAliases": {
-    "@config":      "app/config/init.js",
-    "@database":    "app/database/init.js",
-    "@routes":      "app/routes/init.js",
+    "@config": "app/config/init.js",
+    "@database": "app/database/init.js",
+    "@routes": "app/routes/init.js",
     "@controllers": "app/controllers",
-    "@middleware":  "app/middleware/init.js",
-    "@helpers":     "app/helpers",
-    "@utils":       "app/utils",
-    "@services":    "app/services"
+    "@middleware": "app/middleware/init.js",
+    "@helpers": "app/helpers",
+    "@utils": "app/utils",
+    "@services": "app/services/init.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
@@ -26,6 +26,8 @@
     "helmet": "^7.1.0",
     "module-alias": "^2.2.3",
     "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.13.0"
   },
   "devDependencies": {
