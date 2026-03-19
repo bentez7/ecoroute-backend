@@ -1,93 +1,183 @@
 # EcoRoute Backend
 
+Supabase + Express backend for the **Carbon Aware Route Planner** — a behaviour-aware carbon tracking mobile app that combines FASTSim energy simulation, XGBoost driving behaviour classification, and Google Maps route comparison to help drivers reduce emissions.
 
+---
 
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Architecture
 
 ```
-cd existing_repo
-git remote add origin https://git.infotech.monash.edu/carbon-route-planner/ecoroute-backend.git
-git branch -M main
-git push -uf origin main
+Mobile App (Flutter / React Native)
+    │
+    ├── Streams raw GPS + motion telemetry (0.5 Hz)
+    ├── POSTs trip data and telemetry to this backend
+    │
+    ▼
+EcoRoute Backend (this repo)
+    ├── Supabase Auth (email/password)
+    ├── PostgreSQL database + RLS
+    └── REST API
+            │
+            ▼
+    ML Repo (separate)
+    ├── FASTSim — energy & CO2 simulation
+    ├── XGBoost + SHAP — driving behaviour classification
+    └── POSTs computed results back to this backend
 ```
 
-## Integrate with your tools
+The ML repo is a separate service. It receives telemetry, computes results, and writes back to this backend via service-role-protected endpoints. It has no direct database access.
 
-* [Set up project integrations](https://git.infotech.monash.edu/carbon-route-planner/ecoroute-backend/-/settings/integrations)
+---
 
-## Collaborate with your team
+## Tech Stack
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js |
+| Framework | Express.js |
+| Language | JavaScript (CommonJS) |
+| Database | Supabase (PostgreSQL 15) |
+| Auth | Supabase Auth |
+| Path aliases | module-alias |
 
-## Test and Deploy
+---
 
-Use the built-in continuous integration in GitLab.
+## Project Structure
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```
+app/
+├── config/          # App config, keys, Supabase connection config
+├── database/        # Supabase client singletons (anon + service role) + models
+├── controllers/     # Thin request handlers — delegate to services
+├── services/        # Business logic and database operations per resource
+├── routes/          # Express routers with middleware guards
+├── middleware/       # Auth JWT, service role, error handler, validation
+├── helpers/         # Response shape, CO2 emission factors
+└── utils/           # Winston logger
+supabase/
+└── migrations/      # SQL schema, RLS policies, indexes, triggers
+samples/
+└── .env.sample      # Environment variable template
+server.js            # Entry point
+```
 
-***
+---
 
-# Editing this README
+## Database Schema
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+| Table | Written by | Purpose |
+|---|---|---|
+| `users` | Auth trigger | User profiles — extends Supabase auth.users |
+| `vehicles` | Mobile app | User-owned vehicles with FASTSim parameters |
+| `trips` | Mobile app + ML repo | One row per completed trip |
+| `raw_telemetry` | Mobile app | 0.5 Hz GPS + motion stream, pruned after 30 days |
+| `telemetry_segments` | ML repo | 60-second behavioural windows with XGBoost labels |
+| `route_comparisons` | ML repo | FASTSim analysis of alternative routes |
+| `feedback_events` | Backend (auto) | Behavioural nudges from suboptimal driving segments |
 
-## Suggestions for a good README
+---
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## API Endpoints
 
-## Name
-Choose a self-explaining name for your project.
+### Auth
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/signup` | — | Register with email + password |
+| POST | `/api/auth/signin` | — | Sign in, returns session tokens |
+| POST | `/api/auth/signout` | JWT | Revoke session |
+| GET | `/api/auth/me` | JWT | Get current user profile |
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### Vehicles
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/vehicles` | JWT | Add a vehicle |
+| GET | `/api/vehicles` | JWT | List user's vehicles |
+| PATCH | `/api/vehicles/:id` | JWT | Update vehicle |
+| DELETE | `/api/vehicles/:id` | JWT | Delete vehicle |
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### Trips
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/trips` | JWT | Create a trip |
+| GET | `/api/trips` | JWT | List user's trips |
+| GET | `/api/trips/:id` | JWT | Get a trip |
+| PATCH | `/api/trips/:id` | JWT | Update a trip |
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Telemetry
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/telemetry` | JWT | Bulk insert raw telemetry points |
+| GET | `/api/telemetry/trip/:tripId` | JWT | Get telemetry for a trip |
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### Segments, Routes, Feedback
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/segments/trip/:tripId` | JWT | Get segments for a trip |
+| GET | `/api/segments/:id` | JWT | Get a segment |
+| GET | `/api/routes/trip/:tripId` | JWT | Get route comparisons for a trip |
+| GET | `/api/feedback/trip/:tripId` | JWT | Get feedback events for a trip |
+| PATCH | `/api/feedback/:id/acknowledge` | JWT | Acknowledge a feedback nudge |
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### ML Writeback (service role key required)
+| Method | Path | Description |
+|---|---|---|
+| PATCH | `/api/ml/trips/:tripId/results` | Write energy, CO2, driver profile |
+| POST | `/api/ml/trips/:tripId/segments` | Write telemetry segments |
+| POST | `/api/ml/trips/:tripId/routes` | Write route comparisons |
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Health
+| Method | Path | Description |
+|---|---|---|
+| GET | `/health` | Server health check |
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+---
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+## Getting Started
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### Prerequisites
+- Node.js 18+
+- A Supabase project with the migration applied
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+### Setup
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+# Install dependencies
+npm install
 
-## License
-For open source projects, say how it is licensed.
+# Copy env template and fill in your values
+cp samples/.env.sample .env
+```
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Environment Variables
+
+```env
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY=<anon-public-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-secret-key>
+GOOGLE_MAPS_API_KEY=<your-maps-api-key>
+PORT=3000
+NODE_ENV=development
+CORS_ORIGINS=http://localhost:3000
+```
+
+### Run
+
+```bash
+# Development (with auto-reload)
+npm run dev
+
+# Production
+npm start
+```
+
+---
+
+## Database Migration
+
+The full schema is in `supabase/migrations/001_initial_schema.sql`. It includes all tables, indexes, RLS policies, and the `handle_new_user` trigger that auto-creates a `public.users` profile on signup.
+
+Apply it via the Supabase dashboard or CLI:
+
+```bash
+supabase db push
+```
