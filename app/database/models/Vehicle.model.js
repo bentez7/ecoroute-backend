@@ -5,7 +5,9 @@ const TABLE = 'vehicles';
 const FIELDS = {
   ID:               'id',
   USER_ID:          'user_id',
-  LABEL:            'label',
+  MAKE:             'make',
+  MODEL:            'model',
+  YEAR:             'year',
   VEHICLE_TYPE:     'vehicle_type',
   VEHICLE_MASS_KG:  'vehicle_mass_kg',
   DRAG_COEFFICIENT: 'drag_coefficient',
@@ -33,7 +35,9 @@ function create(overrides = {}) {
   return {
     id:               null,
     user_id:          null,
-    label:            null,
+    make:             null,
+    model:            null,
+    year:             null,
     vehicle_type:     null,
     vehicle_mass_kg:  null,
     drag_coefficient: null,

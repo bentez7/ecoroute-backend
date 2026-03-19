@@ -33,7 +33,8 @@ async function getById(vehicleId, userId) {
 async function update(vehicleId, userId, updates) {
   const allowed = {};
   const editable = [
-    FIELDS.LABEL, FIELDS.VEHICLE_TYPE, FIELDS.VEHICLE_MASS_KG,
+    FIELDS.MAKE, FIELDS.MODEL, FIELDS.YEAR,
+    FIELDS.VEHICLE_TYPE, FIELDS.VEHICLE_MASS_KG,
     FIELDS.DRAG_COEFFICIENT, FIELDS.DRIVETRAIN_TYPE, FIELDS.IS_DEFAULT,
   ];
   for (const field of editable) {

@@ -2,6 +2,7 @@
 
 const { anonClient, serviceClient } = require('@database');
 const { UserService }               = require('@services');
+const { AuthDTO }                   = require('@dto');
 const Response                      = require('@helpers/Response.helper');
 
 async function signUp(req, res) {
@@ -18,7 +19,7 @@ async function signUp(req, res) {
   // handle_new_user() in supabase/migrations/001_initial_schema.sql —
   // no manual insert needed here.
 
-  return Response.success(res, { user: data.user, session: data.session }, 201);
+  return Response.success(res, AuthDTO.signUpDTO(data.user, data.session), 201);
 }
 
 async function signIn(req, res) {
@@ -27,7 +28,7 @@ async function signIn(req, res) {
   const { data, error } = await anonClient.auth.signInWithPassword({ email, password });
   if (error) return Response.error(res, error.message, 401);
 
-  return Response.success(res, { user: data.user, session: data.session });
+  return Response.success(res, AuthDTO.signInDTO(data.user, data.session));
 }
 
 async function signOut(req, res) {

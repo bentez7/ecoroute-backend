@@ -59,8 +59,9 @@ const options = {
           type: 'object',
           properties: {
             id:               { type: 'string', format: 'uuid' },
-            user_id:          { type: 'string', format: 'uuid' },
-            label:            { type: 'string', example: 'My Perodua Myvi' },
+            make:             { type: 'string', example: 'Perodua' },
+            model:            { type: 'string', example: 'Myvi' },
+            year:             { type: 'integer', example: 2022, nullable: true },
             vehicle_type:     { type: 'string', enum: ['petrol', 'diesel', 'lpg', 'ev', 'hybrid'] },
             vehicle_mass_kg:  { type: 'number', example: 1050 },
             drag_coefficient: { type: 'number', example: 0.32 },
@@ -68,6 +69,18 @@ const options = {
             is_default:       { type: 'boolean', default: false },
             created_at:       { type: 'string', format: 'date-time' },
             updated_at:       { type: 'string', format: 'date-time' },
+          },
+        },
+        VehicleLookup: {
+          type: 'object',
+          properties: {
+            make:         { type: 'string', example: 'Perodua' },
+            model:        { type: 'string', example: 'Myvi' },
+            year:         { type: 'integer', example: 2022, nullable: true },
+            fuel_type:    { type: 'string', nullable: true },
+            engine_size:  { type: 'string', nullable: true },
+            transmission: { type: 'string', nullable: true },
+            body_style:   { type: 'string', nullable: true },
           },
         },
         Trip: {
@@ -155,7 +168,7 @@ const options = {
     },
     tags: [
       { name: 'Auth',     description: 'Authentication — sign up, sign in, sign out' },
-      { name: 'Vehicles', description: 'User vehicle management' },
+      { name: 'Vehicles', description: 'User vehicle management. Note: vehicle options (make, model, etc.) may be expanded in future to provide dropdown lists via the /options endpoint.' },
       { name: 'Trips',    description: 'Trip CRUD' },
       { name: 'Telemetry', description: 'Raw GPS + motion data ingestion' },
       { name: 'Segments', description: 'Behavioural segments (written by ML repo)' },
@@ -251,10 +264,34 @@ const options = {
       },
 
       // ── Vehicles ────────────────────────────────────────────────────────────
+      '/api/vehicles/options': {
+        get: {
+          tags: ['Vehicles'],
+          summary: 'Get vehicle type and drivetrain type options for dropdowns',
+          description: 'No auth required — returns enum values for the create/edit vehicle form.',
+          responses: {
+            200: {
+              description: 'Selection options',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      vehicle_types:    { type: 'array', items: { type: 'string' }, example: ['petrol', 'diesel', 'lpg', 'ev', 'hybrid'] },
+                      drivetrain_types: { type: 'array', items: { type: 'string' }, example: ['fwd', 'rwd', 'awd'] },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       '/api/vehicles': {
         post: {
           tags: ['Vehicles'],
           summary: 'Add a new vehicle',
+          description: 'First vehicle is automatically set as default.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -262,22 +299,24 @@ const options = {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['label', 'vehicle_type'],
+                  required: ['make', 'model', 'vehicle_type', 'drivetrain_type'],
                   properties: {
-                    label:            { type: 'string', example: 'My Perodua Myvi' },
+                    make:             { type: 'string', example: 'Perodua' },
+                    model:            { type: 'string', example: 'Myvi' },
+                    year:             { type: 'integer', example: 2022 },
                     vehicle_type:     { type: 'string', enum: ['petrol', 'diesel', 'lpg', 'ev', 'hybrid'] },
-                    vehicle_mass_kg:  { type: 'number', example: 1050 },
-                    drag_coefficient: { type: 'number', example: 0.32 },
+                    vehicle_mass_kg:  { type: 'number', example: 1050, minimum: 500, maximum: 10000 },
+                    drag_coefficient: { type: 'number', example: 0.32, minimum: 0.1, maximum: 1.0 },
                     drivetrain_type:  { type: 'string', enum: ['fwd', 'rwd', 'awd'] },
-                    is_default:       { type: 'boolean', default: false },
                   },
                 },
               },
             },
           },
           responses: {
-            201: { description: 'Vehicle created' },
+            201: { description: 'Vehicle created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Vehicle' } } } },
             401: { description: 'Unauthorised' },
+            422: { description: 'Validation error' },
           },
         },
         get: {
@@ -285,31 +324,102 @@ const options = {
           summary: 'List all vehicles for the current user',
           security: [{ bearerAuth: [] }],
           responses: {
-            200: { description: 'Array of vehicles' },
+            200: { description: 'Array of vehicles', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Vehicle' } } } } },
             401: { description: 'Unauthorised' },
           },
         },
       },
+      '/api/vehicles/lookup': {
+        post: {
+          tags: ['Vehicles'],
+          summary: 'Lookup vehicle by Malaysian registration number',
+          description: 'Calls the Malaysian vehicle registry API. Returns pre-filled data for the create form — does NOT create a vehicle.',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['registration_number'],
+                  properties: {
+                    registration_number: { type: 'string', example: 'ABC1234' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Vehicle lookup data', content: { 'application/json': { schema: { $ref: '#/components/schemas/VehicleLookup' } } } },
+            401: { description: 'Unauthorised' },
+            404: { description: 'Vehicle not found for registration number' },
+          },
+        },
+      },
       '/api/vehicles/{id}': {
+        get: {
+          tags: ['Vehicles'],
+          summary: 'Get a single vehicle by ID',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: {
+            200: { description: 'Vehicle object', content: { 'application/json': { schema: { $ref: '#/components/schemas/Vehicle' } } } },
+            401: { description: 'Unauthorised' },
+            404: { description: 'Vehicle not found' },
+          },
+        },
         patch: {
           tags: ['Vehicles'],
           summary: 'Update a vehicle',
           security: [{ bearerAuth: [] }],
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-          requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/Vehicle' } } } },
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    make:             { type: 'string' },
+                    model:            { type: 'string' },
+                    year:             { type: 'integer' },
+                    vehicle_type:     { type: 'string', enum: ['petrol', 'diesel', 'lpg', 'ev', 'hybrid'] },
+                    vehicle_mass_kg:  { type: 'number', minimum: 500, maximum: 10000 },
+                    drag_coefficient: { type: 'number', minimum: 0.1, maximum: 1.0 },
+                    drivetrain_type:  { type: 'string', enum: ['fwd', 'rwd', 'awd'] },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: 'Vehicle updated' },
+            200: { description: 'Vehicle updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/Vehicle' } } } },
             401: { description: 'Unauthorised' },
             404: { description: 'Vehicle not found' },
+            422: { description: 'Validation error' },
           },
         },
         delete: {
           tags: ['Vehicles'],
           summary: 'Delete a vehicle',
+          description: 'If the deleted vehicle was the default, the most recently created remaining vehicle is promoted.',
           security: [{ bearerAuth: [] }],
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
           responses: {
             200: { description: 'Vehicle deleted' },
+            401: { description: 'Unauthorised' },
+            404: { description: 'Vehicle not found' },
+          },
+        },
+      },
+      '/api/vehicles/{id}/default': {
+        patch: {
+          tags: ['Vehicles'],
+          summary: 'Set a vehicle as default',
+          description: 'Clears is_default on all other vehicles for this user.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: {
+            200: { description: 'Vehicle set as default', content: { 'application/json': { schema: { $ref: '#/components/schemas/Vehicle' } } } },
             401: { description: 'Unauthorised' },
             404: { description: 'Vehicle not found' },
           },
