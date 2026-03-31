@@ -175,7 +175,7 @@ const options = {
     },
     tags: [
       { name: 'Auth',     description: 'Authentication — sign up, sign in, sign out' },
-      { name: 'Vehicles', description: 'User vehicle management. The /options endpoint provides vehicle types, drivetrain types, and a list of common Malaysian car makes and models for dropdown selection.' },
+      { name: 'Vehicles', description: 'User vehicle management. Use the cascading /makes, /models, /variants endpoints for dropdown selection.' },
       { name: 'Trips',    description: 'Trip CRUD' },
       { name: 'Telemetry', description: 'Raw GPS + motion data ingestion' },
       { name: 'Segments', description: 'Behavioural segments (written by ML repo)' },
@@ -271,29 +271,6 @@ const options = {
       },
 
       // ── Vehicles ────────────────────────────────────────────────────────────
-      '/api/vehicles/options': {
-        get: {
-          tags: ['Vehicles'],
-          summary: 'Get vehicle type and drivetrain options for dropdowns',
-          description: 'No auth required — returns enum values for the create/edit vehicle form.',
-          responses: {
-            200: {
-              description: 'Selection options',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      vehicle_types:    { type: 'array', items: { type: 'string' }, example: ['petrol', 'diesel', 'lpg', 'ev', 'hybrid'] },
-                      drivetrain_types: { type: 'array', items: { type: 'string' }, example: ['fwd', 'rwd', 'awd'] },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
       '/api/vehicles/makes': {
         get: {
           tags: ['Vehicles'],

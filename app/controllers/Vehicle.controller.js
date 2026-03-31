@@ -3,7 +3,6 @@
 const { VehicleService }  = require('@services');
 const { VehicleDTO }      = require('@dto');
 const Response            = require('@helpers/Response.helper');
-const { VEHICLE_TYPES, DRIVETRAIN_TYPES } = require('@database').models.VehicleModel;
 const { paginate }        = require('@helpers/Pagination.helper');
 const vehicleMakes        = require('../data/vehicle-makes.json');
 
@@ -75,13 +74,6 @@ async function deleteVehicle(req, res) {
   return Response.success(res, { message: 'Vehicle deleted' });
 }
 
-function getOptions(_req, res) {
-  return Response.success(res, {
-    vehicle_types:    Object.values(VEHICLE_TYPES),
-    drivetrain_types: Object.values(DRIVETRAIN_TYPES),
-  });
-}
-
 function getMakes(req, res) {
   const makes = vehicleMakes.map(entry => entry.make);
   return Response.success(res, paginate(makes, req.query));
@@ -109,5 +101,5 @@ function getVariants(req, res) {
 
 module.exports = {
   createVehicle, getVehicles, getVehicle, updateVehicle, setDefaultVehicle, deleteVehicle,
-  getOptions, getMakes, getModels, getVariants,
+  getMakes, getModels, getVariants,
 };

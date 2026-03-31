@@ -47,7 +47,6 @@ const idValidation = [
 
 // --- Public routes (no auth) ---
 
-router.get('/options',                  VehicleController.getOptions);
 router.get('/makes',                    VehicleController.getMakes);
 router.get('/makes/:make/models',       VehicleController.getModels);
 router.get('/makes/:make/models/:model/variants', VehicleController.getVariants);
