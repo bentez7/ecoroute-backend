@@ -22,7 +22,14 @@ const FIELDS = {
   CO2_KG:                'co2_kg',
   EXCESS_VS_OPTIMAL_PCT: 'excess_vs_optimal_pct',
   DRIVER_PROFILE:        'driver_profile',
+  STATUS:                'status',
   CREATED_AT:            'created_at',
+};
+
+const TRIP_STATUSES = {
+  ACTIVE:    'active',
+  ENDED:     'ended',
+  CANCELLED: 'cancelled',
 };
 
 const DRIVER_PROFILES = {
@@ -52,9 +59,10 @@ function create(overrides = {}) {
     co2_kg:                null,
     excess_vs_optimal_pct: null,
     driver_profile:        null,
+    status:                'active',
     created_at:            null,
     ...overrides,
   };
 }
 
-module.exports = { TABLE, FIELDS, DRIVER_PROFILES, create };
+module.exports = { TABLE, FIELDS, TRIP_STATUSES, DRIVER_PROFILES, create };

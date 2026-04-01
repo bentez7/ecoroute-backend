@@ -3,12 +3,12 @@
 const { serviceClient, models } = require('@database');
 const { TripModel } = models;
 
-const { TABLE, FIELDS } = TripModel;
+const { TABLE, FIELDS, TRIP_STATUSES } = TripModel;
 
 async function create(userId, tripData) {
   return serviceClient
     .from(TABLE)
-    .insert({ ...tripData, [FIELDS.USER_ID]: userId })
+    .insert({ ...tripData, [FIELDS.USER_ID]: userId, [FIELDS.STATUS]: TRIP_STATUSES.ACTIVE })
     .select()
     .single();
 }
@@ -49,6 +49,23 @@ async function update(tripId, userId, updates) {
     .single();
 }
 
+// End a trip — only succeeds if the trip is currently active (status guard at DB level)
+async function endTrip(tripId, userId, { ended_at, distance_km, duration_sec }) {
+  return serviceClient
+    .from(TABLE)
+    .update({
+      [FIELDS.STATUS]:       TRIP_STATUSES.ENDED,
+      [FIELDS.ENDED_AT]:     ended_at,
+      [FIELDS.DISTANCE_KM]:  distance_km,
+      [FIELDS.DURATION_SEC]: duration_sec,
+    })
+    .eq(FIELDS.ID, tripId)
+    .eq(FIELDS.USER_ID, userId)
+    .eq(FIELDS.STATUS, TRIP_STATUSES.ACTIVE)
+    .select()
+    .single();
+}
+
 // ML repo writeback — updates energy, CO2, driver profile, excess pct
 async function writeMlResults(tripId, results) {
   const allowed = {};
@@ -68,4 +85,4 @@ async function writeMlResults(tripId, results) {
     .single();
 }
 
-module.exports = { create, getByUserId, getById, update, writeMlResults };
+module.exports = { create, getByUserId, getById, update, endTrip, writeMlResults };

@@ -96,10 +96,11 @@ const options = {
             id:                    { type: 'string', format: 'uuid' },
             user_id:               { type: 'string', format: 'uuid' },
             vehicle_id:            { type: 'string', format: 'uuid' },
+            status:                { type: 'string', enum: ['active', 'ended', 'cancelled'], default: 'active' },
             started_at:            { type: 'string', format: 'date-time' },
-            ended_at:              { type: 'string', format: 'date-time' },
-            distance_km:           { type: 'number' },
-            duration_sec:          { type: 'integer' },
+            ended_at:              { type: 'string', format: 'date-time', nullable: true },
+            distance_km:           { type: 'number', nullable: true },
+            duration_sec:          { type: 'integer', nullable: true },
             origin_lat:            { type: 'number' },
             origin_lng:            { type: 'number' },
             origin_address:        { type: 'string', nullable: true },
@@ -179,7 +180,7 @@ const options = {
       { name: 'Trips',    description: 'Trip CRUD' },
       { name: 'Telemetry', description: 'Raw GPS + motion data ingestion' },
       { name: 'Segments', description: 'Behavioural segments (written by ML repo)' },
-      { name: 'Routes',   description: 'Route comparisons (written by ML repo)' },
+      { name: 'Routes',   description: 'Route search (pre-trip, stateless proxy) and post-trip route comparisons (written by ML repo)' },
       { name: 'Feedback', description: 'In-app behavioural nudge events' },
       { name: 'ML',       description: 'ML repo writeback endpoints — service role key required' },
       { name: 'Health',   description: 'Server health check' },
@@ -461,7 +462,8 @@ const options = {
       '/api/trips': {
         post: {
           tags: ['Trips'],
-          summary: 'Create a new trip (called when trip ends)',
+          summary: 'Start a new trip',
+          description: 'Called when the user begins a trip. Trip is created with status "active". Call PATCH /:id/end when the trip finishes.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -469,18 +471,15 @@ const options = {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['vehicle_id', 'started_at', 'ended_at', 'distance_km', 'duration_sec', 'origin_lat', 'origin_lng', 'dest_lat', 'dest_lng', 'fuel_type'],
+                  required: ['vehicle_id', 'started_at', 'origin_lat', 'origin_lng', 'dest_lat', 'dest_lng', 'fuel_type'],
                   properties: {
                     vehicle_id:     { type: 'string', format: 'uuid' },
                     started_at:     { type: 'string', format: 'date-time' },
-                    ended_at:       { type: 'string', format: 'date-time' },
-                    distance_km:    { type: 'number' },
-                    duration_sec:   { type: 'integer' },
-                    origin_lat:     { type: 'number' },
-                    origin_lng:     { type: 'number' },
+                    origin_lat:     { type: 'number', example: 3.1390 },
+                    origin_lng:     { type: 'number', example: 101.6869 },
                     origin_address: { type: 'string', nullable: true },
-                    dest_lat:       { type: 'number' },
-                    dest_lng:       { type: 'number' },
+                    dest_lat:       { type: 'number', example: 3.2000 },
+                    dest_lng:       { type: 'number', example: 101.7000 },
                     dest_address:   { type: 'string', nullable: true },
                     route_polyline: { type: 'string', nullable: true },
                     fuel_type:      { type: 'string', enum: ['petrol', 'diesel', 'lpg', 'ev', 'hybrid'] },
@@ -490,8 +489,9 @@ const options = {
             },
           },
           responses: {
-            201: { description: 'Trip created' },
+            201: { description: 'Trip created with status "active"' },
             401: { description: 'Unauthorised' },
+            422: { description: 'Validation error' },
           },
         },
         get: {
@@ -518,14 +518,58 @@ const options = {
         },
         patch: {
           tags: ['Trips'],
-          summary: 'Update a trip',
+          summary: 'Update a trip (polyline / addresses)',
           security: [{ bearerAuth: [] }],
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-          requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/Trip' } } } },
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    route_polyline: { type: 'string' },
+                    origin_address: { type: 'string' },
+                    dest_address:   { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
           responses: {
             200: { description: 'Trip updated' },
             401: { description: 'Unauthorised' },
             404: { description: 'Trip not found' },
+          },
+        },
+      },
+      '/api/trips/{id}/end': {
+        patch: {
+          tags: ['Trips'],
+          summary: 'End an active trip',
+          description: 'Sets status to "ended" and records final distance, duration, and end time. Only succeeds if the trip is currently active.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['ended_at', 'distance_km', 'duration_sec'],
+                  properties: {
+                    ended_at:     { type: 'string', format: 'date-time' },
+                    distance_km:  { type: 'number', minimum: 0 },
+                    duration_sec: { type: 'integer', minimum: 0 },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Trip ended — returns updated trip with status "ended"' },
+            401: { description: 'Unauthorised' },
+            404: { description: 'Trip not found or already ended' },
+            422: { description: 'Validation error' },
           },
         },
       },
@@ -534,7 +578,8 @@ const options = {
       '/api/telemetry': {
         post: {
           tags: ['Telemetry'],
-          summary: 'Bulk insert raw telemetry points (0.5 Hz from mobile app)',
+          summary: 'Bulk insert raw telemetry points (batch from mobile app)',
+          description: 'Accepts an array of GPS+motion points for an active trip. Returns 409 if the trip has already ended.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -600,7 +645,38 @@ const options = {
         },
       },
 
-      // ── Route Comparisons ────────────────────────────────────────────────────
+      // ── Routes ───────────────────────────────────────────────────────────────
+      '/api/routes/search': {
+        post: {
+          tags: ['Routes'],
+          summary: 'Search for route options between two points',
+          description: 'Stateless proxy to the external routing service. Nothing is stored — the frontend passes the chosen polyline when calling POST /api/trips.',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['origin_lat', 'origin_lng', 'dest_lat', 'dest_lng'],
+                  properties: {
+                    origin_lat: { type: 'number', example: 3.1390 },
+                    origin_lng: { type: 'number', example: 101.6869 },
+                    dest_lat:   { type: 'number', example: 3.2000 },
+                    dest_lng:   { type: 'number', example: 101.7000 },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: 'Array of route options with polyline, distance_km, duration_sec, elevation_gain_m' },
+            401: { description: 'Unauthorised' },
+            422: { description: 'Validation error' },
+            503: { description: 'Routing service unavailable' },
+          },
+        },
+      },
       '/api/routes/trip/{tripId}': {
         get: {
           tags: ['Routes'],
