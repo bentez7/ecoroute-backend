@@ -18,10 +18,10 @@ async function autocompleteSearch(req, res) {
 }
 
 async function searchRoutes(req, res) {
-  const { origin_lat, origin_lng, dest_lat, dest_lng } = req.body;
+  const { origin_lat, origin_lng, dest_lat, dest_lng, model_name } = req.body;
 
   const { routes, error } = await RoutingService.searchRoutes({
-    origin_lat, origin_lng, dest_lat, dest_lng,
+    origin_lat, origin_lng, dest_lat, dest_lng, model_name,
   });
   if (error) return Response.error(res, 'Routing service unavailable', 503);
 

@@ -3,7 +3,7 @@
 const axios  = require('axios');
 const crypto = require('crypto');
 
-const { MAPBOX_API_KEY } = require('@config/app.keys');
+const { MAPBOX_API_KEY } = require('@config');
 
 const MAPBOX_BASE = 'https://api.mapbox.com';
 
@@ -49,7 +49,6 @@ async function matchRoute(coordinates) {
       `${MAPBOX_BASE}/matching/v5/mapbox/driving/${encodeURIComponent(coordString)}`,
       {
         params: {
-          steps:        true,
           geometries:   'polyline',
           overview:     'full',
           access_token: MAPBOX_API_KEY,

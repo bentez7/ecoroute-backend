@@ -1,23 +1,27 @@
 'use strict';
 
 const axios         = require('axios');
+const polylineCodec = require('@mapbox/polyline');
 const MapboxService = require('@helpers/MapboxService.helper');
+
+const { ROUTEE_API_KEY } = require('@config');
 
 const BASE_URL = process.env.ROUTING_SERVICE_URL;
 
-// Three route variants — energy-optimal, time-optimal, balanced
-const OBJECTIVES = [
-  { label: 'eco',      weights: { energy: 1.0, time: 0.1, distance: 0.0 } },
-  { label: 'balanced', weights: { energy: 0.5, time: 0.5, distance: 0.0 } },
-  { label: 'fastest',  weights: { energy: 0.1, time: 1.0, distance: 0.0 } },
-];
+// RouteE Compass route name → our label
+const ROUTE_LABEL_MAP = {
+  least_energy: 'eco',
+  balanced:     'balanced',
+  least_time:   'fastest',
+};
+
+// 1 US gallon of gasoline ≡ 33.7 kWh (GGE)
+const GALLONS_TO_KWH  = 33.7;
+const MILES_TO_KM     = 1.609344;
+const MINUTES_TO_SEC  = 60;
 
 /**
- * Reduce a coordinate array to at most `max` points using uniform nth-point sampling.
- *
- * @param {Array<{ lat: number, lng: number }>} coords
- * @param {number} max
- * @returns {Array<{ lat: number, lng: number }>}
+ * Reduce a [lat, lng] coordinate array to at most `max` points via uniform sampling.
  */
 function _downsample(coords, max) {
   if (coords.length <= max) return coords;
@@ -26,65 +30,91 @@ function _downsample(coords, max) {
 }
 
 /**
- * Call RouteE Compass for a single objective, then enrich with Mapbox Map Matching.
+ * Enrich a single RouteE route with Mapbox Map Matching turn-by-turn steps.
+ * Degrades gracefully — if Map Matching fails the route is still returned without steps.
  *
- * @returns {Promise<object|null>}  Route object, or null if RouteE failed.
+ * @param {{ name: string, summary: object, geometry: string }} routeeRoute
+ * @returns {Promise<object>}
  */
-async function _fetchRoute(origin, destination, objective) {
-  let routeeData;
-  try {
-    const response = await axios.post(`${BASE_URL}/route`, {
-      origin,
-      destination,
-      weights: objective.weights,
-    });
-    routeeData = response.data;
-  } catch {
-    return null;  // RouteE unavailable for this objective
-  }
+async function _enrichRoute(routeeRoute) {
+  const label   = ROUTE_LABEL_MAP[routeeRoute.name] ?? routeeRoute.name;
+  const summary = routeeRoute.summary ?? {};
 
-  const geometry   = routeeData.geometry ?? [];
-  const downsampled = _downsample(geometry, 90);
+  // Decode Google-encoded polyline → [[lat, lng], ...]
+  const latLngPairs = polylineCodec.decode(routeeRoute.geometry ?? '');
 
-  // Enrich with turn-by-turn steps — degrade gracefully if Map Matching fails
+  // Convert to { lat, lng } objects and downsample for Map Matching (max 100 pts)
+  const coordObjects = latLngPairs.map(([lat, lng]) => ({ lat, lng }));
+  const downsampled  = _downsample(coordObjects, 90);
+
+  // Enrich with turn-by-turn steps; degrade gracefully if unavailable
   const { matching } = await MapboxService.matchRoute(downsampled);
-
-  const steps   = matching?.legs?.flatMap(leg => leg.steps ?? []) ?? [];
-  const polyline = matching?.geometry ?? routeeData.polyline ?? null;
+  // Prefer the map-matched polyline (road-snapped); fall back to original
+  const polyline = matching?.geometry ?? routeeRoute.geometry ?? null;
 
   return {
-    label:        objective.label,
-    distance_km:  routeeData.distance_km,
-    duration_sec: routeeData.duration_sec,
-    energy_kwh:   routeeData.energy_kwh ?? null,
+    label,
+    distance_km:  (summary.trip_distance_miles ?? 0) * MILES_TO_KM,
+    duration_sec: Math.round((summary.trip_time_minutes ?? 0) * MINUTES_TO_SEC),
+    energy_kwh:   summary.trip_energy_liquid_gallons != null
+      ? summary.trip_energy_liquid_gallons * GALLONS_TO_KWH
+      : null,
+    elevation_gain_km: (summary.trip_elevation_gain_miles ?? 0) * MILES_TO_KM,
     polyline,
-    steps,
-    warnings:     routeeData.warnings ?? [],
+    warnings: [],
   };
 }
 
 /**
- * Search for route options between an origin and destination.
- * Calls RouteE Compass three times (eco / balanced / fastest) in parallel,
- * then enriches each result with Mapbox Map Matching turn-by-turn instructions.
+ * Fetch all three route alternatives (least_energy / balanced / least_time) from
+ * RouteE Compass in a single request, then enrich each with Mapbox Map Matching.
  *
- * @param {{ origin_lat: number, origin_lng: number, dest_lat: number, dest_lng: number }} params
+ * @param {{
+ *   origin_lat: number, origin_lng: number,
+ *   dest_lat: number,   dest_lng: number,
+ *   model_name?: string
+ * }} params
  * @returns {Promise<{ routes: Array|null, error: Error|null }>}
  */
-async function searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng }) {
-  const origin      = { lat: origin_lat, lng: origin_lng };
-  const destination = { lat: dest_lat,   lng: dest_lng   };
+async function searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng, model_name }) {
+  let compassResponse;
+  try {
+    // RouteE Compass uses x = longitude, y = latitude
+    compassResponse = await axios.post(
+      `${BASE_URL}/route`,
+      {
+        origin_x:      origin_lng,
+        origin_y:      origin_lat,
+        destination_x: dest_lng,
+        destination_y: dest_lat,
+        ...(model_name ? { model_name } : {}),
+      },
+      {
+        headers: { 'X-API-Key': ROUTEE_API_KEY },
+      },
+    );
+  } catch (err) {
+    return { routes: null, error: new Error('Routing service unavailable') };
+  }
 
+  const compassRoutes = compassResponse.data?.routes;
+  if (!Array.isArray(compassRoutes) || compassRoutes.length === 0) {
+    return { routes: null, error: new Error('Routing service returned no routes') };
+  }
+
+  console.log(compassRoutes)
+
+  // Enrich all routes in parallel; drop any that fail
   const results = await Promise.allSettled(
-    OBJECTIVES.map(obj => _fetchRoute(origin, destination, obj)),
+    compassRoutes.map(r => _enrichRoute(r)),
   );
 
   const routes = results
-    .filter(r => r.status === 'fulfilled' && r.value !== null)
+    .filter(r => r.status === 'fulfilled')
     .map(r => r.value);
 
   if (routes.length === 0) {
-    return { routes: null, error: new Error('Routing service unavailable') };
+    return { routes: null, error: new Error('Failed to process routes') };
   }
 
   return { routes, error: null };

@@ -19,6 +19,7 @@
     "@dto": "app/dto/index.js"
   },
   "dependencies": {
+    "@mapbox/polyline": "^1.2.1",
     "@supabase/supabase-js": "^2.45.4",
     "axios": "^1.14.0",
     "cors": "^2.8.5",

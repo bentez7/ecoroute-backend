@@ -9,10 +9,10 @@ function routeOptionDTO(route) {
     label:        route.label,           // 'eco' | 'balanced' | 'fastest'
     distance_km:  route.distance_km,
     duration_sec: route.duration_sec,
-    energy_kwh:   route.energy_kwh ?? null,
-    polyline:     route.polyline,
-    steps:        route.steps ?? [],
-    warnings:     route.warnings ?? [],
+    energy_kwh:        route.energy_kwh ?? null,
+    elevation_gain_km: route.elevation_gain_km ?? null,
+    polyline:          route.polyline,
+    warnings:          route.warnings ?? [],
   };
 }
 
