@@ -43,6 +43,14 @@ async function bulkInsertFromSegments(tripId, segments) {
   return serviceClient.from(TABLE).insert(events).select();
 }
 
+async function getById(eventId) {
+  return serviceClient
+    .from(TABLE)
+    .select('*')
+    .eq(FIELDS.ID, eventId)
+    .single();
+}
+
 async function getByTripId(tripId) {
   return serviceClient
     .from(TABLE)
@@ -60,4 +68,4 @@ async function acknowledge(eventId) {
     .single();
 }
 
-module.exports = { insert, bulkInsertFromSegments, getByTripId, acknowledge };
+module.exports = { insert, bulkInsertFromSegments, getById, getByTripId, acknowledge };

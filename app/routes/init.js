@@ -7,7 +7,6 @@ const TelemetryRoutes = require('./Telemetry.routes');
 const SegmentRoutes   = require('./Segment.routes');
 const RouteRoutes     = require('./Route.routes');
 const FeedbackRoutes  = require('./Feedback.routes');
-const MlRoutes        = require('./Ml.routes');
 
 function mountRoutes(app) {
   app.use('/api/auth',      AuthRoutes);
@@ -17,7 +16,6 @@ function mountRoutes(app) {
   app.use('/api/segments',  SegmentRoutes);
   app.use('/api/routes',    RouteRoutes);
   app.use('/api/feedback',  FeedbackRoutes);
-  app.use('/api/ml',        MlRoutes);
 
   app.get('/health', (req, res) => res.json({ success: true, data: { status: 'ok' } }));
 }

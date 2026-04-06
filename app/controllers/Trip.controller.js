@@ -1,7 +1,8 @@
 'use strict';
 
-const { TripService } = require('@services');
+const { TripService, RouteComparisonService } = require('@services');
 const { TripDTO }     = require('@dto');
+const MlService       = require('@helpers/MlService.helper');
 const Response        = require('@helpers/Response.helper');
 
 async function createTrip(req, res) {
@@ -49,7 +50,32 @@ async function endTrip(req, res) {
   // endTrip guards status = 'active'; no match means not found or already ended
   if (error || !data) return Response.error(res, 'Trip not found or already ended', 404);
 
-  return Response.success(res, TripDTO.tripDTO(data));
+  // Respond immediately — ML analysis runs async
+  res.status(200).json({ success: true, data: TripDTO.tripDTO(data) });
+
+  // Fire ML trip summary + route comparisons in background
+  setImmediate(async () => {
+    const tripId   = data.id;
+    const fuel_type = data.fuel_type;
+
+    // Trip-level energy, CO2, driver profile
+    const summary = await MlService.analyseTripSummary(tripId, { fuel_type, distance_km, duration_sec });
+    if (summary) {
+      await TripService.writeMlResults(tripId, summary);
+    }
+
+    // Alternative route comparisons — pass origin/dest so ML can fetch alternatives
+    const comparisons = await MlService.analyseRouteComparisons(tripId, {
+      origin_lat:  data.origin_lat,
+      origin_lng:  data.origin_lng,
+      dest_lat:    data.dest_lat,
+      dest_lng:    data.dest_lng,
+      fuel_type,
+    });
+    if (comparisons?.length) {
+      await RouteComparisonService.bulkInsert(tripId, comparisons);
+    }
+  });
 }
 
 async function updateTrip(req, res) {
