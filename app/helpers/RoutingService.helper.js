@@ -3,6 +3,8 @@
 const axios         = require('axios');
 const polylineCodec = require('@mapbox/polyline');
 const MapboxService = require('@helpers/MapboxService.helper');
+const { calcCO2 }   = require('@helpers/Emission.helper');
+const Logger        = require('@utils/Logger.util');
 
 const { ROUTEE_API_KEY } = require('@config');
 
@@ -120,4 +122,36 @@ async function searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng, model_
   return { routes, error: null };
 }
 
-module.exports = { searchRoutes };
+/**
+ * Compute post-trip route comparisons using RouteE Compass.
+ * Called once after a trip ends to populate the route_comparisons table with
+ * eco / balanced / fastest alternatives and their estimated energy / CO2.
+ *
+ * @param {{
+ *   origin_lat: number, origin_lng: number,
+ *   dest_lat:   number, dest_lng:   number,
+ *   model_name?: string,
+ *   fuel_type:  string
+ * }} params
+ * @returns {Promise<{ comparisons: Array|null, error: Error|null }>}
+ */
+async function computeRouteComparisons({ origin_lat, origin_lng, dest_lat, dest_lng, model_name, fuel_type }) {
+  const { routes, error } = await searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng, model_name });
+  if (error || !routes) {
+    Logger.warn(`[RoutingService] computeRouteComparisons failed: ${error?.message}`);
+    return { comparisons: null, error };
+  }
+
+  const comparisons = routes.map(route => ({
+    route_label:          route.label,
+    distance_km:          route.distance_km,
+    estimated_energy_kwh: route.energy_kwh,
+    estimated_co2_kg:     route.energy_kwh != null ? calcCO2(route.energy_kwh, fuel_type) : null,
+    elevation_gain_m:     route.elevation_gain_km != null ? route.elevation_gain_km * 1000 : null,
+    route_polyline:       route.polyline,
+  }));
+
+  return { comparisons, error: null };
+}
+
+module.exports = { searchRoutes, computeRouteComparisons };

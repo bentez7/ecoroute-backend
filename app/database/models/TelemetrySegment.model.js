@@ -14,11 +14,21 @@ const FIELDS = {
   BRAKING_FREQUENCY:        'braking_frequency',
   IDLE_TIME_PCT:            'idle_time_pct',
   ENERGY_KWH:               'energy_kwh',
+  BEHAVIOUR_LABEL:          'behaviour_label',
+  CONFIDENCE:               'confidence',
   XGBOOST_EFFICIENCY_LABEL: 'xgboost_efficiency_label',
   SHAP_TOP_FEATURE:         'shap_top_feature',
   CREATED_AT:               'created_at',
 };
 
+// 3-way XGBoost classification returned by the ML service
+const BEHAVIOUR_LABELS = {
+  SMOOTH:     'smooth',
+  MODERATE:   'moderate',
+  AGGRESSIVE: 'aggressive',
+};
+
+// Derived binary label used by the feedback-event pipeline
 const EFFICIENCY_LABELS = {
   OPTIMAL:    'optimal',
   SUBOPTIMAL: 'suboptimal',
@@ -37,6 +47,8 @@ function create(overrides = {}) {
     braking_frequency:        null,
     idle_time_pct:            null,
     energy_kwh:               null,
+    behaviour_label:          null,
+    confidence:               null,
     xgboost_efficiency_label: null,
     shap_top_feature:         null,
     created_at:               null,
@@ -44,4 +56,4 @@ function create(overrides = {}) {
   };
 }
 
-module.exports = { TABLE, FIELDS, EFFICIENCY_LABELS, create };
+module.exports = { TABLE, FIELDS, BEHAVIOUR_LABELS, EFFICIENCY_LABELS, create };

@@ -31,9 +31,10 @@ async function bulkInsertFromSegments(tripId, segments) {
     if (!eventType) continue;
 
     events.push({
-      [FIELDS.TRIP_ID]:    tripId,
-      [FIELDS.SEGMENT_ID]: segment.id,
-      [FIELDS.EVENT_TYPE]: eventType,
+      [FIELDS.TRIP_ID]:      tripId,
+      [FIELDS.SEGMENT_ID]:   segment.id,
+      [FIELDS.EVENT_TYPE]:   eventType,
+      [FIELDS.MESSAGE]:      segment._alert || null,
       [FIELDS.TRIGGERED_AT]: new Date().toISOString(),
     });
   }

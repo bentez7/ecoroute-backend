@@ -15,9 +15,9 @@ const FIELDS = {
 };
 
 const ROUTE_LABELS = {
-  TAKEN: 'taken',
-  ALT_1: 'alt_1',
-  ALT_2: 'alt_2',
+  ECO:      'eco',
+  BALANCED: 'balanced',
+  FASTEST:  'fastest',
 };
 
 function create(overrides = {}) {
