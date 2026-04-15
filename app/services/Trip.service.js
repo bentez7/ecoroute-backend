@@ -13,12 +13,41 @@ async function create(userId, tripData) {
     .single();
 }
 
-async function getByUserId(userId) {
-  return serviceClient
+async function getByUserId(userId, { page = 1, limit = 20 } = {}) {
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const safePage  = Math.max(1, page);
+  const offset    = (safePage - 1) * safeLimit;
+
+  // Get total count
+  const { count, error: countError } = await serviceClient
+    .from(TABLE)
+    .select('*', { count: 'exact', head: true })
+    .eq(FIELDS.USER_ID, userId);
+
+  if (countError) return { data: null, error: countError };
+
+  // Get paginated data
+  const { data, error } = await serviceClient
     .from(TABLE)
     .select('*')
     .eq(FIELDS.USER_ID, userId)
-    .order(FIELDS.STARTED_AT, { ascending: false });
+    .order(FIELDS.STARTED_AT, { ascending: false })
+    .range(offset, offset + safeLimit - 1);
+
+  if (error) return { data: null, error };
+
+  return {
+    data: {
+      data,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total: count,
+        total_pages: Math.ceil(count / safeLimit),
+      },
+    },
+    error: null,
+  };
 }
 
 async function getById(tripId, userId) {
@@ -85,4 +114,15 @@ async function writeMlResults(tripId, results) {
     .single();
 }
 
-module.exports = { create, getByUserId, getById, update, endTrip, writeMlResults };
+async function cancelTrip(tripId, userId) {
+  return serviceClient
+    .from(TABLE)
+    .update({ [FIELDS.STATUS]: TRIP_STATUSES.CANCELLED })
+    .eq(FIELDS.ID, tripId)
+    .eq(FIELDS.USER_ID, userId)
+    .eq(FIELDS.STATUS, TRIP_STATUSES.ACTIVE)
+    .select()
+    .single();
+}
+
+module.exports = { create, getByUserId, getById, update, endTrip, cancelTrip, writeMlResults };

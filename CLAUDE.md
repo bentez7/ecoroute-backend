@@ -5,8 +5,8 @@
 A **behaviour-aware carbon tracking mobile app** that combines:
 - **FASTSim** (NREL physics-based vehicle simulator) for trip-level energy & CO2 estimation
 - **XGBoost + SHAP** for driving behaviour classification (smooth / normal / aggressive)
-- **Google Maps API** for navigation and route comparison
-- **Supabase** for database + auth (this is what we are building now)
+- **RouteE Compass** for energy-aware route comparison + **Mapbox** for map matching and place search
+- **Supabase** for database, auth, and Realtime subscriptions
 
 The app captures 1 Hz telemetry during trips, analyses 12 behavioural features across 60-second segments, and delivers post-trip feedback to help drivers reduce emissions by 15–25%.
 
@@ -21,19 +21,20 @@ The ML models (XGBoost + SHAP) and FASTSim simulation engine live in a **separat
 ### What this repo IS responsible for:
 - Supabase Auth (sign-up, sign-in, session management, profile trigger)
 - PostgreSQL schema, migrations, RLS policies, indexes
-- REST API endpoints that **receive** pre-computed results from the ML repo
+- REST API endpoints for the mobile app (trips, telemetry, vehicles, feedback, routes)
+- **Calling the ML service** to analyse telemetry and receive results synchronously
 - Storing telemetry, trip data, segment results, and feedback events
-- Route comparison data (energies + CO2 already computed externally)
-- Serving data to the mobile app
+- Route comparison via RouteE Compass + Mapbox Map Matching
+- Serving data to the mobile app (the frontend subscribes to Supabase Realtime for live updates)
 
 ### What this repo is NOT responsible for:
-- Running FASTSim simulations (handled in the ML repo)
-- Training or running the XGBoost model (handled in the ML repo)
-- Computing SHAP values (handled in the ML repo)
+- Running FASTSim simulations (handled in the ML service)
+- Training or running the XGBoost model (handled in the ML service)
+- Computing SHAP values (handled in the ML service)
 - Any Python ML dependencies (numpy, scikit-learn, fastsim, xgboost, shap)
 
-### How the ML repo connects to this backend:
-The ML repo calls this backend's API endpoints (authenticated via Supabase service role key) to **write back results** after processing. For example, after a trip ends, the ML repo computes `energy_kwh`, `co2_kg`, `driver_profile`, and segment-level features, then POSTs them to this backend to persist into the database.
+### How the ML service connects:
+This backend **calls out** to the ML service via HTTP (see `MlService.helper.js`). The ML service is a stateless HTTP API — it receives telemetry points, runs analysis, and returns results in the response. The backend then writes those results to Supabase. There are **no inbound endpoints** for the ML service to push data to this backend.
 
 ---
 
@@ -42,8 +43,9 @@ The ML repo calls this backend's API endpoints (authenticated via Supabase servi
 A **Supabase backend** that covers:
 1. **Authentication** — Supabase Auth (email/password + optional OAuth)
 2. **Database schema** — all tables, relationships, RLS policies
-3. **API endpoints** — to receive data from the mobile app and ML repo
-4. **TypeScript/Python client helpers** — typed Supabase client for the mobile app
+3. **API endpoints** — for the mobile app to send/receive data
+4. **ML integration** — backend calls the ML service and writes results to the DB
+5. **Realtime** — Supabase Realtime enabled on `feedback_events` so the frontend receives live updates
 
 ---
 
@@ -52,120 +54,37 @@ A **Supabase backend** that covers:
 ```
 Mobile App (Flutter / React Native)
     │
-    ├── Navigation Module       → Google Maps API
+    ├── Navigation Module       → Mapbox / Google Maps
     ├── Data Collection Module  → 1 Hz GPS + accelerometer telemetry
+    ├── Realtime Subscriptions  → Supabase Realtime (feedback_events)
     │
     ▼
-Supabase Backend  ◄──────────────────────────────────────────────┐
-    ├── Auth (users)                                              │
-    ├── PostgreSQL Database                                       │
-    └── REST API                                                  │
-            │                                            writes back results
-            │ stores raw telemetry                               │
-            ▼                                                    │
-    ML Repo (separate)  ─────────────────────────────────────────┘
-    ├── FASTSim (energy & CO2 simulation)
-    ├── XGBoost (driver behaviour classification)
-    └── SHAP (explainability)
+Express Backend (this repo)
+    ├── Auth (Supabase Auth)
+    ├── REST API
+    ├── PostgreSQL (Supabase)
+    │
+    ├── calls ──► ML Service (separate repo)
+    │               ├── XGBoost (driver behaviour classification)
+    │               └── SHAP (explainability)
+    │
+    └── calls ──► RouteE Compass (routing + energy estimates)
+                    └── enriched via Mapbox Map Matching
 ```
 
 ---
 
-## Database Schema to Implement
+## Database Schema (Implemented)
 
-### Table: `profiles`
-Extends Supabase `auth.users`. One row per user.
-```
-id            uuid  PK  references auth.users(id)
-display_name  text
-vehicle_type  text        -- 'petrol' | 'diesel' | 'lpg' | 'ev' | 'hybrid'
-vehicle_mass_kg  float   -- for FASTSim parameterisation
-drag_coefficient float
-drivetrain_type  text    -- 'fwd' | 'rwd' | 'awd'
-created_at    timestamptz
-updated_at    timestamptz
-```
+See `supabase/migrations/` (001–008) for the full SQL. Summary of tables:
 
-### Table: `trips`
-One row per completed trip.
-```
-id              uuid  PK default gen_random_uuid()
-user_id         uuid  FK → profiles(id)
-started_at      timestamptz
-ended_at        timestamptz
-distance_km     float
-duration_sec    int
-route_polyline  text        -- encoded Google Maps polyline
-origin_lat      float
-origin_lng      float
-dest_lat        float
-dest_lng        float
-fuel_type       text        -- inherited from vehicle at time of trip
-energy_kwh      float       -- FASTSim output
-co2_kg          float       -- IPCC conversion factor applied
-excess_vs_optimal_pct float -- (actual - optimal) / optimal * 100
-driver_profile  text        -- 'smooth' | 'normal' | 'aggressive'  (XGBoost output)
-created_at      timestamptz
-```
-
-### Table: `telemetry_segments`
-60-second behavioural segments extracted from raw telemetry.
-```
-id                  uuid  PK default gen_random_uuid()
-trip_id             uuid  FK → trips(id)
-segment_index       int         -- 0-based segment number within trip
-started_at          timestamptz
-ended_at            timestamptz
-avg_speed_kmh       float
-speed_variance      float
-accel_variance      float       -- m/s² — most predictive feature (r=0.82)
-braking_frequency   float       -- events/km  (r=0.76)
-idle_time_pct       float       -- % of segment spent idle
-energy_kwh          float       -- FASTSim for this segment
-xgboost_efficiency_label text   -- 'optimal' | 'suboptimal'
-shap_top_feature    text        -- most impactful feature for explainability
-created_at          timestamptz
-```
-
-### Table: `raw_telemetry`
-1 Hz GPS + motion data points (high-volume, consider partitioning).
-```
-id          bigserial  PK
-trip_id     uuid  FK → trips(id)
-recorded_at timestamptz
-lat         float
-lng         float
-speed_ms    float
-accel_ms2   float
-altitude_m  float
-heading_deg float
-```
-
-### Table: `route_comparisons`
-Post-trip alternative route analysis.
-```
-id                  uuid  PK default gen_random_uuid()
-trip_id             uuid  FK → trips(id)
-route_label         text    -- 'taken' | 'alt_1' | 'alt_2'
-distance_km         float
-estimated_energy_kwh float  -- FASTSim prediction
-estimated_co2_kg    float
-elevation_gain_m    float
-route_polyline      text
-created_at          timestamptz
-```
-
-### Table: `feedback_events`
-In-app behavioural nudge log.
-```
-id              uuid  PK default gen_random_uuid()
-trip_id         uuid  FK → trips(id)
-segment_id      uuid  FK → telemetry_segments(id)  nullable
-event_type      text  -- 'harsh_accel' | 'harsh_brake' | 'idling' | 'speed_variance'
-message         text
-triggered_at    timestamptz
-acknowledged    boolean default false
-```
+- **`users`** — extends `auth.users`. Fields: `id`, `email`, `display_name`, `avatar_url`, `role`, `account_status`, `auth_provider`, `created_at`, `updated_at`
+- **`vehicles`** — user's garage. Fields: `id`, `user_id`, `make`, `model`, `year`, `vehicle_type`, `vehicle_mass_kg`, `drag_coefficient`, `drivetrain_type`, `is_default`, `created_at`, `updated_at`
+- **`trips`** — trip lifecycle. Fields: `id`, `user_id`, `vehicle_id`, `status` (`active`|`ended`|`cancelled`), `started_at`, `ended_at`, `distance_km`, `duration_sec`, `route_polyline`, `origin_lat/lng`, `origin_address`, `dest_lat/lng`, `dest_address`, `fuel_type`, `energy_kwh`, `co2_kg`, `excess_vs_optimal_pct`, `driver_profile`, `created_at`
+- **`telemetry_segments`** — 60-second behavioural segments. Includes `behaviour_label` (`smooth`|`moderate`|`aggressive`), `confidence`, `xgboost_efficiency_label`, `shap_top_feature`
+- **`raw_telemetry`** — 1 Hz GPS + motion data (bigserial PK, high-volume)
+- **`route_comparisons`** — post-trip alternatives. `route_label`: `eco` | `balanced` | `fastest`
+- **`feedback_events`** — behavioural nudges. Supabase Realtime enabled on this table
 
 ---
 
@@ -179,28 +98,11 @@ Use these in computed columns or application logic:
 
 ---
 
-## Supabase Auth Requirements
+## Supabase Auth (Implemented)
 
-- Enable **Email/Password** sign-up
-- Enable **email confirmation** (optional for dev, required for prod)
-- Auto-create `profiles` row on user sign-up using a **database trigger** on `auth.users`
-- RLS: users can only read/write their own data
-
-### Auth Trigger (create profile on signup)
-```sql
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, display_name)
-  values (new.id, new.raw_user_meta_data->>'display_name');
-  return new;
-end;
-$$ language plpgsql security definer;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-```
+- **Email/Password** sign-up enabled
+- Auto-creates a `users` row on sign-up via a **database trigger** on `auth.users`
+- RLS: users can only read/write their own data across all tables
 
 ---
 
@@ -225,7 +127,7 @@ create policy "Users update own trips"
   using (auth.uid() = user_id);
 ```
 
-Apply equivalent policies to: `profiles`, `telemetry_segments`, `raw_telemetry`, `route_comparisons`, `feedback_events`.
+Applied to all tables: `users`, `vehicles`, `trips`, `telemetry_segments`, `raw_telemetry`, `route_comparisons`, `feedback_events`.
 
 ---
 
@@ -252,15 +154,15 @@ create index idx_feedback_events_trip_id on feedback_events(trip_id);
 | Runtime | Node.js |
 | Framework | Express.js |
 | Language | JavaScript (CommonJS, `require`) |
+| Routing | RouteE Compass API + Mapbox Map Matching |
+| Place search | Mapbox Search API |
 | Mobile client | Flutter or React Native (consumes this backend) |
-| Maps | Google Maps Platform API (routes stored here, computed externally) |
 
-### Separate ML Repo (not built here — for context only)
+### Separate ML Service (not built here — for context only)
 | Layer | Technology |
 |-------|-----------|
-| Simulation | FASTSim (NREL Python library) |
 | Behaviour model | XGBoost + SHAP (Python, scikit-learn pipeline) |
-| Runtime | Python service that reads telemetry and writes results back to this backend |
+| Runtime | Python HTTP service — this backend calls it, it returns results |
 
 ---
 
@@ -273,58 +175,78 @@ Based on the standard Node.js + Express architecture. Use `module-alias` for `@r
 ├── app/
 │   ├── config/
 │   │   ├── app.conf.js          # App-level config (port, env, CORS origins)
+│   │   ├── app.keys.js          # Supabase keys, Mapbox key, RouteE key (loaded from .env)
 │   │   ├── db.conf.js           # Supabase connection config
-│   │   ├── app.keys.js          # Supabase keys, Google Maps key (loaded from .env)
+│   │   ├── swagger.conf.js      # Swagger/OpenAPI spec generation
 │   │   └── init.js              # Exports all config together
 │   │
 │   ├── database/
+│   │   ├── models/              # Supabase query models (User, Vehicle, Trip, etc.)
 │   │   ├── Supabase.database.js # Supabase client singleton (anon + service role)
 │   │   └── init.js
 │   │
 │   ├── routes/
-│   │   ├── Auth.routes.js       # POST /auth/signup, /auth/signin, /auth/signout
-│   │   ├── Trip.routes.js       # CRUD for trips
-│   │   ├── Telemetry.routes.js  # Bulk insert raw_telemetry
-│   │   ├── Segment.routes.js    # Read telemetry_segments (written by ML repo)
-│   │   ├── Route.routes.js      # Read route_comparisons
-│   │   ├── Feedback.routes.js   # feedback_events CRUD
-│   │   ├── Ml.routes.js         # ML repo writeback endpoints (service-role protected)
+│   │   ├── Auth.routes.js       # POST /auth/signup, /auth/signin, /auth/signout, GET /auth/me
+│   │   ├── Vehicle.routes.js    # Vehicle CRUD, make/model/variant catalog
+│   │   ├── Trip.routes.js       # Trip CRUD, start/end lifecycle
+│   │   ├── Telemetry.routes.js  # Bulk insert raw_telemetry, get by trip
+│   │   ├── Segment.routes.js    # Read telemetry_segments
+│   │   ├── Route.routes.js      # Autocomplete, route search, post-trip comparisons
+│   │   ├── Feedback.routes.js   # feedback_events read + acknowledge
 │   │   └── init.js              # Mounts all routers onto Express app
 │   │
 │   ├── controllers/
 │   │   ├── Auth.controller.js
+│   │   ├── Vehicle.controller.js
 │   │   ├── Trip.controller.js
 │   │   ├── Telemetry.controller.js
 │   │   ├── Segment.controller.js
 │   │   ├── Route.controller.js
-│   │   ├── Feedback.controller.js
-│   │   └── Ml.controller.js     # Handles ML repo writebacks
+│   │   └── Feedback.controller.js
+│   │
+│   ├── services/                # Business logic layer (called by controllers)
+│   │   ├── User.service.js
+│   │   ├── Vehicle.service.js
+│   │   ├── Trip.service.js
+│   │   ├── Telemetry.service.js
+│   │   ├── Segment.service.js
+│   │   ├── RouteComparison.service.js
+│   │   ├── FeedbackEvent.service.js
+│   │   └── init.js
+│   │
+│   ├── dto/                     # Data transfer objects (response shaping)
+│   │   ├── Auth.dto.js
+│   │   ├── User.dto.js
+│   │   ├── Vehicle.dto.js
+│   │   ├── Trip.dto.js
+│   │   ├── Route.dto.js
+│   │   └── index.js
 │   │
 │   ├── middleware/
 │   │   ├── Auth.middleware.js        # Validate Supabase JWT from Authorization header
-│   │   ├── ServiceRole.middleware.js # Validate ML repo service-role key
+│   │   ├── ServiceRole.middleware.js # Validate service-role key (currently unused)
 │   │   ├── ErrorHandler.middleware.js
-│   │   ├── Validate.middleware.js    # Request body validation (e.g. express-validator)
+│   │   ├── Validate.middleware.js    # Request body validation (express-validator)
 │   │   └── init.js
 │   │
 │   ├── helpers/
-│   │   ├── Supabase.helper.js   # Shared Supabase query helpers
-│   │   ├── Emission.helper.js   # CO2 conversion factor lookups (IPCC constants)
-│   │   └── Response.helper.js   # Standardised API response shape {success, data, error}
+│   │   ├── Supabase.helper.js       # Shared Supabase query helpers
+│   │   ├── Emission.helper.js       # CO2 conversion factor lookups (IPCC constants)
+│   │   ├── Response.helper.js       # Standardised API response shape {success, data, error}
+│   │   ├── Pagination.helper.js     # Offset-based pagination utilities
+│   │   ├── MlService.helper.js      # HTTP client for calling the ML service
+│   │   ├── RoutingService.helper.js # RouteE Compass + route comparison logic
+│   │   └── MapboxService.helper.js  # Mapbox Search + Map Matching
 │   │
 │   └── utils/
-│       └── Logger.util.js       # Winston or pino logger
+│       └── Logger.util.js       # Winston logger
 │
 ├── supabase/
-│   └── migrations/
-│       └── 001_initial_schema.sql  # All tables, indexes, RLS, auth trigger
+│   └── migrations/              # 001 through 008
 │
 ├── samples/
-│   ├── .env.sample
-│   ├── app.conf.sample
-│   └── app.keys.sample
+│   └── .env.sample
 │
-├── node_modules/
 ├── server.js        # Entry point — creates Express app, loads middleware, starts server
 ├── package.json
 ├── .env             # Never commit — see samples/
@@ -333,10 +255,11 @@ Based on the standard Node.js + Express architecture. Use `module-alias` for `@r
 
 ### Key Conventions
 - All `init.js` files aggregate and export their folder's modules so consumers need one `require`
-- Controllers are thin — business logic goes in helpers
-- `Ml.routes.js` is the dedicated surface for the ML repo to write back results; it uses `ServiceRole.middleware.js` not the user JWT middleware
+- Controllers are thin — business logic goes in services and helpers
 - `Emission.helper.js` holds the IPCC conversion constants (do not scatter these across controllers)
 - Always return a consistent response shape: `{ success: true, data: {...} }` or `{ success: false, error: "message" }`
+- The backend **calls out** to the ML service (via `MlService.helper.js`) — there are no inbound ML endpoints
+- The frontend subscribes to **Supabase Realtime** on `feedback_events` for live in-trip notifications
 
 ---
 
@@ -363,34 +286,50 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>  # server-side only, never expose to client
 GOOGLE_MAPS_API_KEY=<key>
+MAPBOX_API_KEY=<key>
 
-# The ML repo will use this service role key to write back computed results
-# No ML model paths belong in this repo
+# Routing
+ROUTING_SERVICE_URL=http://localhost:8080      # RouteE Compass base URL
+ROUTEE_API_KEY=<key>
+
+# ML Service — this backend calls out to it
+ML_SERVICE_URL=http://localhost:8000
 ```
 
 ---
 
 ## Key Business Rules
 
-1. A `trip` is only saved after it ends (not during)
-2. `telemetry_segments` rows are written by the **ML repo** after it processes raw telemetry — this backend just stores them
-3. `driver_profile` on a trip is sent by the ML repo after classification — this backend does not compute it
-4. `energy_kwh` and `co2_kg` on trips and segments are written by the ML repo — this backend stores and serves them
-5. `co2_kg` reference: LPG 0.2496 kg/kWh, Diesel 0.2668 kg/kWh, EV ~0.585 kg/kWh (Malaysia grid)
-6. Route comparison data is written by the ML repo after it runs FASTSim on alternatives — this backend stores and serves it
-7. Route comparison runs async after trip save — the mobile app should poll or use Supabase Realtime to detect when results are ready
+1. A `trip` starts with `POST /api/trips` (status = `active`) and ends with `PATCH /api/trips/:id/end`
+2. During an active trip, the mobile app streams telemetry via `POST /api/telemetry` in batches (every 30–60s)
+3. On each telemetry batch, the backend **calls the ML service** (`MlService.helper.js`) which returns segment analysis — the backend writes segments and feedback events to the DB
+4. The frontend subscribes to **Supabase Realtime** on `feedback_events` to receive live behavioural nudges during the trip
+5. When a trip ends, `Trip.controller.js` runs **async background processing**: aggregates segment energy into trip-level totals, derives `driver_profile`, fetches route comparisons from RouteE Compass, and stores everything
+6. `co2_kg` reference: LPG 0.2496 kg/kWh, Diesel 0.2668 kg/kWh, Petrol 0.2496 kg/kWh, EV ~0.585 kg/kWh (Malaysia grid)
+7. Route comparisons (eco / balanced / fastest) are fetched from RouteE Compass and enriched with Mapbox Map Matching for road-snapped polylines
 8. `raw_telemetry` may be pruned after 30 days (retain aggregated segment data permanently)
-9. The ML repo authenticates to this backend using the **Supabase service role key**
 
 ---
 
-## Immediate Tasks (Priority Order)
+## Completed Work
 
-1. **Discuss and agree on database schema** — present all tables, get approval before writing SQL
-2. **Write Supabase migration SQL** — all tables, indexes, RLS, auth trigger (`supabase/migrations/001_initial_schema.sql`)
-3. **Supabase client setup** — typed TypeScript client auto-generated from schema
-4. **Auth flow** — sign-up, sign-in, session refresh, profile auto-creation via trigger
-5. **Trip CRUD endpoints** — POST /trips, GET /trips, GET /trips/:id (mobile app)
-6. **Telemetry ingestion endpoint** — bulk insert `raw_telemetry` from mobile app
-7. **ML writeback endpoints** — authenticated endpoints for the ML repo to POST segment results, update trip energy/CO2/profile, and insert route comparisons
-8. **Feedback events endpoint** — store and retrieve in-app behavioural nudges
+- [x] Database schema — 8 migrations (001–008) covering all tables, indexes, RLS, auth trigger, Realtime
+- [x] Supabase client setup — anon + service role clients
+- [x] Auth flow — signup, signin, signout, GET /auth/me, profile auto-creation trigger
+- [x] Vehicle management — full CRUD, make/model/variant catalog, default vehicle logic
+- [x] Trip lifecycle — create (active), end (with async background processing), update, list, get
+- [x] Telemetry ingestion — bulk insert with async ML segment analysis
+- [x] Segment retrieval — by trip and by ID
+- [x] Route search — RouteE Compass integration with Mapbox Map Matching enrichment
+- [x] Route comparisons — stored post-trip via async background processing
+- [x] Place autocomplete — Mapbox Search API
+- [x] Feedback events — list by trip, acknowledge
+- [x] Supabase Realtime — enabled on `feedback_events` table
+- [x] API documentation — `report.md` with full endpoint reference and frontend integration guide
+
+## Remaining Tasks
+
+1. **Tests** — no test framework or test files exist yet
+2. **Trip cancellation** — `status` supports `cancelled` but no endpoint sets it
+3. **Trips pagination** — `GET /api/trips` returns all trips, no offset/limit support
+4. **Clean up `console.log`** in `RoutingService.helper.js`

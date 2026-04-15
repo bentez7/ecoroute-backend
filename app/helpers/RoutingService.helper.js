@@ -104,8 +104,6 @@ async function searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng, model_
     return { routes: null, error: new Error('Routing service returned no routes') };
   }
 
-  console.log(compassRoutes)
-
   // Enrich all routes in parallel; drop any that fail
   const results = await Promise.allSettled(
     compassRoutes.map(r => _enrichRoute(r)),

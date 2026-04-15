@@ -7,7 +7,7 @@ const options = {
     openapi: '3.0.0',
     info: {
       title: 'EcoRoute Backend API',
-      version: '1.0.0',
+      version: '1.1.0',
       description: 'Carbon-aware route planner — Supabase + Express backend',
     },
     servers: [
@@ -20,11 +20,6 @@ const options = {
           scheme: 'bearer',
           bearerFormat: 'JWT',
           description: 'Supabase JWT from sign-in response',
-        },
-        serviceRoleKey: {
-          type: 'http',
-          scheme: 'bearer',
-          description: 'Supabase service role key — ML repo only',
         },
       },
       schemas: {
@@ -143,6 +138,8 @@ const options = {
             braking_frequency:        { type: 'number' },
             idle_time_pct:            { type: 'number' },
             energy_kwh:               { type: 'number', nullable: true },
+            behaviour_label:          { type: 'string', enum: ['smooth', 'moderate', 'aggressive'], nullable: true },
+            confidence:               { type: 'number', nullable: true, description: 'Model confidence score (0-1)' },
             xgboost_efficiency_label: { type: 'string', enum: ['optimal', 'suboptimal'], nullable: true },
             shap_top_feature:         { type: 'string', nullable: true },
           },
@@ -152,7 +149,7 @@ const options = {
           properties: {
             id:                    { type: 'string', format: 'uuid' },
             trip_id:               { type: 'string', format: 'uuid' },
-            route_label:           { type: 'string', enum: ['taken', 'alt_1', 'alt_2'] },
+            route_label:           { type: 'string', enum: ['eco', 'balanced', 'fastest'] },
             distance_km:           { type: 'number' },
             estimated_energy_kwh:  { type: 'number' },
             estimated_co2_kg:      { type: 'number' },
@@ -175,15 +172,14 @@ const options = {
       },
     },
     tags: [
-      { name: 'Auth',     description: 'Authentication — sign up, sign in, sign out' },
-      { name: 'Vehicles', description: 'User vehicle management. Use the cascading /makes, /models, /variants endpoints for dropdown selection.' },
-      { name: 'Trips',    description: 'Trip CRUD' },
+      { name: 'Auth',      description: 'Authentication — sign up, sign in, sign out' },
+      { name: 'Vehicles',  description: 'User vehicle management. Use the cascading /makes, /models, /variants endpoints for dropdown selection.' },
+      { name: 'Trips',     description: 'Trip lifecycle — create, list, end, cancel' },
       { name: 'Telemetry', description: 'Raw GPS + motion data ingestion' },
-      { name: 'Segments', description: 'Behavioural segments (written by ML repo)' },
-      { name: 'Routes',   description: 'Route search (pre-trip, stateless proxy) and post-trip route comparisons (written by ML repo)' },
-      { name: 'Feedback', description: 'In-app behavioural nudge events' },
-      { name: 'ML',       description: 'ML repo writeback endpoints — service role key required' },
-      { name: 'Health',   description: 'Server health check' },
+      { name: 'Segments',  description: 'Behavioural segments (created by ML pipeline during telemetry ingestion)' },
+      { name: 'Routes',    description: 'Place autocomplete, route search (RouteE Compass), and post-trip route comparisons' },
+      { name: 'Feedback',  description: 'In-app behavioural nudge events (Realtime-enabled)' },
+      { name: 'Health',    description: 'Server health check' },
     ],
     paths: {
       '/health': {
@@ -496,10 +492,23 @@ const options = {
         },
         get: {
           tags: ['Trips'],
-          summary: 'List all trips for the current user',
+          summary: 'List trips for the current user (paginated)',
           security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number (default 1)' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 }, description: 'Items per page (default 20, max 100)' },
+          ],
           responses: {
-            200: { description: 'Array of trips ordered by started_at desc' },
+            200: {
+              description: 'Paginated array of trips ordered by started_at desc',
+              content: { 'application/json': { schema: {
+                type: 'object',
+                properties: {
+                  data:       { type: 'array', items: { $ref: '#/components/schemas/Trip' } },
+                  pagination: { $ref: '#/components/schemas/Pagination' },
+                },
+              } } },
+            },
             401: { description: 'Unauthorised' },
           },
         },
@@ -570,6 +579,21 @@ const options = {
             401: { description: 'Unauthorised' },
             404: { description: 'Trip not found or already ended' },
             422: { description: 'Validation error' },
+          },
+        },
+      },
+
+      '/api/trips/{id}/cancel': {
+        patch: {
+          tags: ['Trips'],
+          summary: 'Cancel an active trip',
+          description: 'Sets status to "cancelled". Only succeeds if the trip is currently active.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: {
+            200: { description: 'Trip cancelled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Trip' } } } },
+            401: { description: 'Unauthorised' },
+            404: { description: 'Trip not found or not active' },
           },
         },
       },
@@ -646,6 +670,56 @@ const options = {
       },
 
       // ── Routes ───────────────────────────────────────────────────────────────
+      '/api/routes/autocomplete': {
+        post: {
+          tags: ['Routes'],
+          summary: 'Search for places (Mapbox Search API)',
+          description: 'Used for the destination search bar in the mobile app. Returns place suggestions with coordinates.',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['query'],
+                  properties: {
+                    query:         { type: 'string', example: 'KLCC' },
+                    proximity_lat: { type: 'number', example: 3.1390, description: 'Bias results near this latitude' },
+                    proximity_lng: { type: 'number', example: 101.6869, description: 'Bias results near this longitude' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Array of place suggestions',
+              content: { 'application/json': { schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name:         { type: 'string', example: 'KLCC - Kuala Lumpur City Centre' },
+                        full_address: { type: 'string', example: 'Kuala Lumpur City Centre, 50088 Kuala Lumpur' },
+                        lat:          { type: 'number', example: 3.1516 },
+                        lng:          { type: 'number', example: 101.7033 },
+                      },
+                    },
+                  },
+                },
+              } } },
+            },
+            401: { description: 'Unauthorised' },
+            422: { description: 'Validation error' },
+            503: { description: 'Search service unavailable' },
+          },
+        },
+      },
       '/api/routes/search': {
         post: {
           tags: ['Routes'],
@@ -717,93 +791,6 @@ const options = {
         },
       },
 
-      // ── ML Writeback ─────────────────────────────────────────────────────────
-      '/api/ml/trips/{tripId}/results': {
-        patch: {
-          tags: ['ML'],
-          summary: 'Write back computed trip energy, CO2, and driver profile',
-          security: [{ serviceRoleKey: [] }],
-          parameters: [{ name: 'tripId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    energy_kwh:            { type: 'number' },
-                    co2_kg:                { type: 'number' },
-                    excess_vs_optimal_pct: { type: 'number' },
-                    driver_profile:        { type: 'string', enum: ['smooth', 'normal', 'aggressive'] },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            200: { description: 'Trip updated with ML results' },
-            403: { description: 'Invalid or missing service role key' },
-          },
-        },
-      },
-      '/api/ml/trips/{tripId}/segments': {
-        post: {
-          tags: ['ML'],
-          summary: 'Write back computed behavioural segments for a trip',
-          security: [{ serviceRoleKey: [] }],
-          parameters: [{ name: 'tripId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['segments'],
-                  properties: {
-                    segments: {
-                      type: 'array',
-                      items: { $ref: '#/components/schemas/TelemetrySegment' },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            201: { description: 'Segments written and feedback events auto-generated' },
-            403: { description: 'Invalid or missing service role key' },
-          },
-        },
-      },
-      '/api/ml/trips/{tripId}/routes': {
-        post: {
-          tags: ['ML'],
-          summary: 'Write back route comparison data for a trip',
-          security: [{ serviceRoleKey: [] }],
-          parameters: [{ name: 'tripId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['routes'],
-                  properties: {
-                    routes: {
-                      type: 'array',
-                      items: { $ref: '#/components/schemas/RouteComparison' },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            201: { description: 'Route comparisons written' },
-            403: { description: 'Invalid or missing service role key' },
-          },
-        },
-      },
     },
   },
   apis: [],

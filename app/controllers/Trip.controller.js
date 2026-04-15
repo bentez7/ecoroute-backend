@@ -28,10 +28,16 @@ async function createTrip(req, res) {
 }
 
 async function getTrips(req, res) {
-  const { data, error } = await TripService.getByUserId(req.user.id);
+  const page  = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 20;
+
+  const { data, error } = await TripService.getByUserId(req.user.id, { page, limit });
   if (error) return Response.error(res, error.message, 400);
 
-  return Response.success(res, TripDTO.tripListDTO(data));
+  return Response.success(res, {
+    data: TripDTO.tripListDTO(data.data),
+    pagination: data.pagination,
+  });
 }
 
 async function getTripById(req, res) {
@@ -103,6 +109,13 @@ async function endTrip(req, res) {
   });
 }
 
+async function cancelTrip(req, res) {
+  const { data, error } = await TripService.cancelTrip(req.params.id, req.user.id);
+  if (error || !data) return Response.error(res, 'Trip not found or not active', 404);
+
+  return Response.success(res, TripDTO.tripDTO(data));
+}
+
 async function updateTrip(req, res) {
   const { data, error } = await TripService.update(req.params.id, req.user.id, req.body);
   if (error || !data) return Response.error(res, 'Trip not found', 404);
@@ -131,4 +144,4 @@ function sumSegmentEnergy(segments) {
   return values.length ? values.reduce((acc, v) => acc + v, 0) : null;
 }
 
-module.exports = { createTrip, getTrips, getTripById, endTrip, updateTrip };
+module.exports = { createTrip, getTrips, getTripById, endTrip, cancelTrip, updateTrip };

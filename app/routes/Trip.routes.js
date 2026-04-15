@@ -52,10 +52,14 @@ router.get('/:id',
   requireAuth, idValidation, handleValidationErrors,
   TripController.getTripById);
 
-// IMPORTANT: /:id/end must be declared before /:id to avoid Express matching 'end' as the :id param
+// IMPORTANT: named sub-routes must be declared before /:id to avoid Express matching them as the :id param
 router.patch('/:id/end',
   requireAuth, endTripValidation, handleValidationErrors,
   TripController.endTrip);
+
+router.patch('/:id/cancel',
+  requireAuth, idValidation, handleValidationErrors,
+  TripController.cancelTrip);
 
 router.patch('/:id',
   requireAuth, idValidation, handleValidationErrors,

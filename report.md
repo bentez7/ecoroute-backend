@@ -1,7 +1,7 @@
 # EcoRoute Backend API Documentation
 
-**Version:** 1.0.0
-**Last Updated:** 2026-04-09
+**Version:** 1.1.0
+**Last Updated:** 2026-04-15
 **Base URL:** `/api`
 
 ---
@@ -938,47 +938,62 @@ curl -X POST http://localhost:3000/api/trips \
 
 #### GET /api/trips
 
-**Description:** List all trips for the authenticated user, ordered by `started_at` descending (most recent first).
+**Description:** List trips for the authenticated user, ordered by `started_at` descending (most recent first). Supports **offset-based pagination**.
 
 **Auth required:** Yes
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `page` | number | No | `1` | 1-indexed page number |
+| `limit` | number | No | `20` | Items per page (max 100) |
 
 **Success Response:** `200 OK`
 
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-      "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      "vehicle_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-      "status": "ended",
-      "started_at": "2026-04-09T08:30:00.000Z",
-      "ended_at": "2026-04-09T09:00:00.000Z",
-      "distance_km": 5.3,
-      "duration_sec": 1800,
-      "route_polyline": "encodedPolylineString...",
-      "origin_lat": 3.139,
-      "origin_lng": 101.6869,
-      "origin_address": "Kuala Lumpur Sentral",
-      "dest_lat": 3.1516,
-      "dest_lng": 101.7033,
-      "dest_address": "KLCC",
-      "fuel_type": "petrol",
-      "energy_kwh": 2.45,
-      "co2_kg": 0.6115,
-      "excess_vs_optimal_pct": 12.5,
-      "driver_profile": "normal",
-      "created_at": "2026-04-09T08:30:01.000Z"
+  "data": {
+    "data": [
+      {
+        "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+        "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "vehicle_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "status": "ended",
+        "started_at": "2026-04-09T08:30:00.000Z",
+        "ended_at": "2026-04-09T09:00:00.000Z",
+        "distance_km": 5.3,
+        "duration_sec": 1800,
+        "route_polyline": "encodedPolylineString...",
+        "origin_lat": 3.139,
+        "origin_lng": 101.6869,
+        "origin_address": "Kuala Lumpur Sentral",
+        "dest_lat": 3.1516,
+        "dest_lng": 101.7033,
+        "dest_address": "KLCC",
+        "fuel_type": "petrol",
+        "energy_kwh": 2.45,
+        "co2_kg": 0.6115,
+        "excess_vs_optimal_pct": 12.5,
+        "driver_profile": "normal",
+        "created_at": "2026-04-09T08:30:01.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1,
+      "total_pages": 1
     }
-  ]
+  }
 }
 ```
 
 **cURL Example:**
 
 ```bash
-curl http://localhost:3000/api/trips \
+curl "http://localhost:3000/api/trips?page=1&limit=10" \
   -H "Authorization: Bearer eyJhbGciOi..."
 ```
 
@@ -1097,6 +1112,66 @@ curl -X PATCH http://localhost:3000/api/trips/c3d4e5f6-a7b8-9012-cdef-1234567890
     "distance_km": 5.3,
     "duration_sec": 1800
   }'
+```
+
+---
+
+#### PATCH /api/trips/:id/cancel
+
+**Description:** Cancel an active trip. Only trips with status `active` can be cancelled. Sets the trip status to `cancelled`.
+
+**Auth required:** Yes
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string (UUID) | Trip ID |
+
+**Success Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+    "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "vehicle_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "status": "cancelled",
+    "started_at": "2026-04-09T08:30:00.000Z",
+    "ended_at": null,
+    "distance_km": null,
+    "duration_sec": null,
+    "route_polyline": null,
+    "origin_lat": 3.139,
+    "origin_lng": 101.6869,
+    "origin_address": "Kuala Lumpur Sentral",
+    "dest_lat": 3.1516,
+    "dest_lng": 101.7033,
+    "dest_address": "KLCC",
+    "fuel_type": "petrol",
+    "energy_kwh": null,
+    "co2_kg": null,
+    "excess_vs_optimal_pct": null,
+    "driver_profile": null,
+    "created_at": "2026-04-09T08:30:01.000Z"
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Error | Description |
+|--------|-------|-------------|
+| 401 | `"Invalid or expired token"` | Authentication failed |
+| 404 | `"Trip not found or not active"` | Trip does not exist, does not belong to user, or is not `active` |
+| 422 | `[{ "msg": "Invalid trip ID", ... }]` | ID is not a valid UUID |
+
+**cURL Example:**
+
+```bash
+curl -X PATCH http://localhost:3000/api/trips/c3d4e5f6-a7b8-9012-cdef-123456789012/cancel \
+  -H "Authorization: Bearer eyJhbGciOi..."
 ```
 
 ---
@@ -2327,12 +2402,15 @@ export default api;
 
 ### Current Version
 
-**v1.0.0** — 2026-04-09
+**v1.1.0** — 2026-04-15
 
 ### Changelog
 
 | Date | Change | Breaking? |
 |------|--------|-----------|
+| 2026-04-15 | Add `PATCH /api/trips/:id/cancel` endpoint | No |
+| 2026-04-15 | Add offset-based pagination to `GET /api/trips` — response shape changed from array to `{ data, pagination }` | Yes |
+| 2026-04-15 | Add unit test suite (Jest) — 48 tests across controllers, middleware, and helpers | No |
 | 2026-04-09 | Initial API documentation | - |
 | 2026-04-08 | Enable Supabase Realtime on `feedback_events` table | No |
 | 2026-04-07 | Fix `route_comparisons.route_label` constraint: now accepts `eco` \| `balanced` \| `fastest` instead of `taken` \| `alt_1` \| `alt_2` | Yes |
@@ -2343,8 +2421,6 @@ export default api;
 
 ### Upcoming Changes
 
-- **Supabase Realtime subscriptions** — `feedback_events` table is already Realtime-enabled. The frontend can subscribe to new feedback events during an active trip for live notifications.
-- **Pagination** on `GET /api/trips` — currently returns all trips. Will add offset-based pagination in a future release.
 - **API versioning** (`/v1/` prefix) will be introduced before the first public release.
 
 ### Realtime Integration (Preview)
