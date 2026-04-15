@@ -3,19 +3,7 @@
 const { RouteComparisonService, TripService } = require('@services');
 const { RouteDTO } = require('@dto');
 const RoutingService = require('@helpers/RoutingService.helper');
-const MapboxService  = require('@helpers/MapboxService.helper');
 const Response = require('@helpers/Response.helper');
-
-async function autocompleteSearch(req, res) {
-  const { query, proximity_lat, proximity_lng } = req.body;
-
-  const { suggestions, error } = await MapboxService.searchAutocomplete({
-    query, proximity_lat, proximity_lng,
-  });
-  if (error) return Response.error(res, 'Search service unavailable', 503);
-
-  return Response.success(res, suggestions);
-}
 
 async function searchRoutes(req, res) {
   const { origin_lat, origin_lng, dest_lat, dest_lng, model_name } = req.body;
@@ -42,4 +30,4 @@ async function getRouteComparisonsByTrip(req, res) {
   return Response.success(res, data);
 }
 
-module.exports = { autocompleteSearch, searchRoutes, getRouteComparisonsByTrip };
+module.exports = { searchRoutes, getRouteComparisonsByTrip };

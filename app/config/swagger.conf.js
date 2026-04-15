@@ -144,6 +144,16 @@ const options = {
             shap_top_feature:         { type: 'string', nullable: true },
           },
         },
+        PlaceSuggestion: {
+          type: 'object',
+          properties: {
+            place_id:     { type: 'string', example: 'ChIJN1t_tDeuEmsRUsoyG83frY4' },
+            name:         { type: 'string', example: 'KLCC' },
+            full_address: { type: 'string', example: 'Kuala Lumpur City Centre, 50088 Kuala Lumpur' },
+            lat:          { type: 'number', example: 3.1516 },
+            lng:          { type: 'number', example: 101.7033 },
+          },
+        },
         RouteComparison: {
           type: 'object',
           properties: {
@@ -177,7 +187,8 @@ const options = {
       { name: 'Trips',     description: 'Trip lifecycle — create, list, end, cancel' },
       { name: 'Telemetry', description: 'Raw GPS + motion data ingestion' },
       { name: 'Segments',  description: 'Behavioural segments (created by ML pipeline during telemetry ingestion)' },
-      { name: 'Routes',    description: 'Place autocomplete, route search (RouteE Compass), and post-trip route comparisons' },
+      { name: 'Places',    description: 'Place autocomplete and text search (Google Places API)' },
+      { name: 'Routes',    description: 'Route search (RouteE Compass) and post-trip route comparisons' },
       { name: 'Feedback',  description: 'In-app behavioural nudge events (Realtime-enabled)' },
       { name: 'Health',    description: 'Server health check' },
     ],
@@ -669,12 +680,12 @@ const options = {
         },
       },
 
-      // ── Routes ───────────────────────────────────────────────────────────────
-      '/api/routes/autocomplete': {
+      // ── Places ──────────────────────────────────────────────────────────────
+      '/api/places/autocomplete': {
         post: {
-          tags: ['Routes'],
-          summary: 'Search for places (Mapbox Search API)',
-          description: 'Used for the destination search bar in the mobile app. Returns place suggestions with coordinates.',
+          tags: ['Places'],
+          summary: 'Autocomplete place suggestions (Google Places API)',
+          description: 'As-you-type place search for the destination bar. Returns ranked suggestions with coordinates.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -701,25 +712,61 @@ const options = {
                   success: { type: 'boolean', example: true },
                   data: {
                     type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        name:         { type: 'string', example: 'KLCC - Kuala Lumpur City Centre' },
-                        full_address: { type: 'string', example: 'Kuala Lumpur City Centre, 50088 Kuala Lumpur' },
-                        lat:          { type: 'number', example: 3.1516 },
-                        lng:          { type: 'number', example: 101.7033 },
-                      },
-                    },
+                    items: { $ref: '#/components/schemas/PlaceSuggestion' },
                   },
                 },
               } } },
             },
             401: { description: 'Unauthorised' },
             422: { description: 'Validation error' },
-            503: { description: 'Search service unavailable' },
+            503: { description: 'Place search service unavailable' },
           },
         },
       },
+      '/api/places/search': {
+        post: {
+          tags: ['Places'],
+          summary: 'Full text place search (Google Places API)',
+          description: 'Search for places by name or address. Returns results with coordinates directly (no second lookup needed).',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['query'],
+                  properties: {
+                    query:         { type: 'string', example: 'Kuala Lumpur City Centre' },
+                    proximity_lat: { type: 'number', example: 3.1390, description: 'Bias results near this latitude' },
+                    proximity_lng: { type: 'number', example: 101.6869, description: 'Bias results near this longitude' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Array of place results',
+              content: { 'application/json': { schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/PlaceSuggestion' },
+                  },
+                },
+              } } },
+            },
+            401: { description: 'Unauthorised' },
+            422: { description: 'Validation error' },
+            503: { description: 'Place search service unavailable' },
+          },
+        },
+      },
+
+      // ── Routes ───────────────────────────────────────────────────────────────
       '/api/routes/search': {
         post: {
           tags: ['Routes'],

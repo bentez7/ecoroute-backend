@@ -155,7 +155,7 @@ create index idx_feedback_events_trip_id on feedback_events(trip_id);
 | Framework | Express.js |
 | Language | JavaScript (CommonJS, `require`) |
 | Routing | RouteE Compass API + Mapbox Map Matching |
-| Place search | Mapbox Search API |
+| Place search | Google Places API (New) |
 | Mobile client | Flutter or React Native (consumes this backend) |
 
 ### Separate ML Service (not built here — for context only)
@@ -191,7 +191,8 @@ Based on the standard Node.js + Express architecture. Use `module-alias` for `@r
 │   │   ├── Trip.routes.js       # Trip CRUD, start/end lifecycle
 │   │   ├── Telemetry.routes.js  # Bulk insert raw_telemetry, get by trip
 │   │   ├── Segment.routes.js    # Read telemetry_segments
-│   │   ├── Route.routes.js      # Autocomplete, route search, post-trip comparisons
+│   │   ├── Route.routes.js      # Route search, post-trip comparisons
+│   │   ├── Place.routes.js      # Place autocomplete + text search (Google Places API)
 │   │   ├── Feedback.routes.js   # feedback_events read + acknowledge
 │   │   └── init.js              # Mounts all routers onto Express app
 │   │
@@ -202,6 +203,7 @@ Based on the standard Node.js + Express architecture. Use `module-alias` for `@r
 │   │   ├── Telemetry.controller.js
 │   │   ├── Segment.controller.js
 │   │   ├── Route.controller.js
+│   │   ├── Place.controller.js
 │   │   └── Feedback.controller.js
 │   │
 │   ├── services/                # Business logic layer (called by controllers)
@@ -220,6 +222,7 @@ Based on the standard Node.js + Express architecture. Use `module-alias` for `@r
 │   │   ├── Vehicle.dto.js
 │   │   ├── Trip.dto.js
 │   │   ├── Route.dto.js
+│   │   ├── Place.dto.js
 │   │   └── index.js
 │   │
 │   ├── middleware/
@@ -236,7 +239,8 @@ Based on the standard Node.js + Express architecture. Use `module-alias` for `@r
 │   │   ├── Pagination.helper.js     # Offset-based pagination utilities
 │   │   ├── MlService.helper.js      # HTTP client for calling the ML service
 │   │   ├── RoutingService.helper.js # RouteE Compass + route comparison logic
-│   │   └── MapboxService.helper.js  # Mapbox Search + Map Matching
+│   │   ├── MapboxService.helper.js  # Mapbox Map Matching (route geometry snapping)
+│   │   └── GooglePlacesService.helper.js # Google Places API (New) — autocomplete + text search
 │   │
 │   └── utils/
 │       └── Logger.util.js       # Winston logger
@@ -322,7 +326,7 @@ ML_SERVICE_URL=http://localhost:8000
 - [x] Segment retrieval — by trip and by ID
 - [x] Route search — RouteE Compass integration with Mapbox Map Matching enrichment
 - [x] Route comparisons — stored post-trip via async background processing
-- [x] Place autocomplete — Mapbox Search API
+- [x] Place autocomplete + text search — Google Places API (New)
 - [x] Feedback events — list by trip, acknowledge
 - [x] Supabase Realtime — enabled on `feedback_events` table
 - [x] API documentation — `report.md` with full endpoint reference and frontend integration guide
