@@ -1,6 +1,6 @@
 'use strict';
 
-const { TripService, RouteComparisonService, SegmentService } = require('@services');
+const { TripService, RouteComparisonService, SegmentService, UserService } = require('@services');
 const { TripDTO }       = require('@dto');
 const RoutingService    = require('@helpers/RoutingService.helper');
 const { calcCO2 }       = require('@helpers/Emission.helper');
@@ -99,7 +99,12 @@ async function endTrip(req, res) {
         energy_kwh, co2_kg, driver_profile, excess_vs_optimal_pct,
       });
 
-      // 7. Persist route comparisons
+      // 7. Increment user's cumulative carbon footprint
+      if (co2_kg != null) {
+        await UserService.incrementCO2(data.user_id, co2_kg);
+      }
+
+      // 8. Persist route comparisons
       if (comparisons?.length) {
         await RouteComparisonService.bulkInsert(tripId, comparisons);
       }

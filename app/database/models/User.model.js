@@ -10,6 +10,7 @@ const FIELDS = {
   ROLE:           'role',
   ACCOUNT_STATUS: 'account_status',
   AUTH_PROVIDER:  'auth_provider',
+  TOTAL_CO2_KG:   'total_co2_kg',
   CREATED_AT:     'created_at',
   UPDATED_AT:     'updated_at',
 };
@@ -41,6 +42,7 @@ function create(overrides = {}) {
     role:           ROLES.USER,
     account_status: ACCOUNT_STATUSES.ACTIVE,
     auth_provider:  AUTH_PROVIDERS.EMAIL,
+    total_co2_kg:   0,
     created_at:     null,
     updated_at:     null,
     ...overrides,

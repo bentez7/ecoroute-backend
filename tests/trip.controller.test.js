@@ -11,6 +11,7 @@ jest.mock('@services', () => ({
   TripService:           { create: jest.fn(), getByUserId: jest.fn(), getById: jest.fn(), endTrip: jest.fn(), cancelTrip: jest.fn(), update: jest.fn(), writeMlResults: jest.fn() },
   SegmentService:        { getByTripId: jest.fn() },
   RouteComparisonService: { bulkInsert: jest.fn() },
+  UserService:           { incrementCO2: jest.fn() },
 }));
 jest.mock('@helpers/RoutingService.helper', () => ({
   computeRouteComparisons: jest.fn(),

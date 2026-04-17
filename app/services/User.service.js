@@ -26,6 +26,13 @@ async function updateProfile(userId, updates) {
     .single();
 }
 
+async function incrementCO2(userId, amountKg) {
+  return serviceClient.rpc('increment_user_co2', {
+    p_user_id: userId,
+    p_amount:  amountKg,
+  });
+}
+
 async function softDelete(userId) {
   return serviceClient
     .from(TABLE)
@@ -35,4 +42,4 @@ async function softDelete(userId) {
     .single();
 }
 
-module.exports = { getById, updateProfile, softDelete };
+module.exports = { getById, updateProfile, softDelete, incrementCO2 };
