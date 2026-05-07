@@ -28,7 +28,14 @@ const MINUTES_TO_SEC  = 60;
 function _downsample(coords, max) {
   if (coords.length <= max) return coords;
   const step = Math.ceil(coords.length / max);
-  return coords.filter((_, i) => i % step === 0);
+  const out = coords.filter((_, i) => i % step === 0);
+  // Uniform sampling can drop the final coord (e.g. N=270, step=3 keeps up to
+  // index 267). Mapbox Map Matching then terminates short of the true
+  // destination, so always preserve the last point.
+  if (out[out.length - 1] !== coords[coords.length - 1]) {
+    out.push(coords[coords.length - 1]);
+  }
+  return out;
 }
 
 /**
@@ -50,9 +57,9 @@ async function _enrichRoute(routeeRoute) {
   const downsampled  = _downsample(coordObjects, 90);
 
   // Enrich with turn-by-turn steps; degrade gracefully if unavailable
-  const { matching } = await MapboxService.matchRoute(downsampled);
-  // Prefer the map-matched polyline (road-snapped); fall back to original
-  const polyline = matching?.geometry ?? routeeRoute.geometry ?? null;
+  const { matching, geometry5 } = await MapboxService.matchRoute(downsampled);
+  // Legacy polyline5 for mobile display; fall back to the RouteE geometry
+  const polyline = geometry5 ?? routeeRoute.geometry ?? null;
 
   return {
     label,
@@ -63,6 +70,7 @@ async function _enrichRoute(routeeRoute) {
       : null,
     elevation_gain_km: (summary.trip_elevation_gain_miles ?? 0) * MILES_TO_KM,
     polyline,
+    matching,
     warnings: [],
   };
 }
@@ -115,6 +123,59 @@ async function searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng, model_
 
   if (routes.length === 0) {
     return { routes: null, error: new Error('Failed to process routes') };
+  }
+
+  // Map Matching can fail (matching === null) when the RouteE polyline
+  // can't be snapped — typically because Mapbox's tile data and our OSM
+  // graph have drifted (e.g. a closed road exists in our graph but not in
+  // Mapbox's, or the route trace splits into multiple matchings that we
+  // refuse to stitch). When EVERY alternative fails this way, the mobile
+  // client would fall back to the synth path on every option and the user
+  // gets a route line but no real turn-by-turn cues anywhere.
+  //
+  // In that case, fall back to a single Mapbox Directions API route. We
+  // lose the eco/balanced/fastest comparison for this trip, but the user
+  // gets working banner + voice navigation along a road network Mapbox
+  // *can* match (because Directions API uses Mapbox's own router).
+  const anyMatched = routes.some((r) => r.matching != null);
+  if (!anyMatched) {
+    Logger.warn(
+      '[RoutingService] All RouteE routes failed Map Matching — ' +
+      'falling back to Mapbox Directions API for a single route',
+    );
+    const { matching, geometry5, error: dirErr } =
+      await MapboxService.directionsRoute(origin_lat, origin_lng, dest_lat, dest_lng);
+    if (matching) {
+      // Prefer the RouteE summary numbers from the closest-equivalent
+      // alternative (the "fastest" / least_time RouteE route is the one
+      // Mapbox Directions effectively replaces) so the energy estimate
+      // isn't lost — RouteE still computed energy for *its* geometry,
+      // which is a reasonable proxy for the Mapbox driving alternative.
+      const fallbackEnergy = routes.find((r) => r.label === 'fastest')
+                          ?? routes[0];
+      return {
+        routes: [
+          {
+            label:        'fastest',
+            distance_km:  matching.distance != null ? matching.distance / 1000 : fallbackEnergy.distance_km,
+            duration_sec: matching.duration != null ? Math.round(matching.duration) : fallbackEnergy.duration_sec,
+            energy_kwh:   fallbackEnergy.energy_kwh,
+            elevation_gain_km: fallbackEnergy.elevation_gain_km,
+            polyline:     geometry5 ?? fallbackEnergy.polyline,
+            matching,
+            warnings: [
+              'Eco-route unavailable for this trip — showing Mapbox driving directions because the routing graph and Mapbox tiles disagree on the road network.',
+            ],
+          },
+        ],
+        error: null,
+      };
+    }
+    if (dirErr) {
+      Logger.warn(`[RoutingService] Directions API fallback also failed: ${dirErr.message}`);
+    }
+    // Both Map Matching and Directions API failed; let the un-matched
+    // RouteE routes through and the mobile synth path will do its best.
   }
 
   return { routes, error: null };
