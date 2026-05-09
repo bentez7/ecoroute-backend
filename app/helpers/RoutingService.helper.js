@@ -61,10 +61,17 @@ async function _enrichRoute(routeeRoute) {
   // Legacy polyline5 for mobile display; fall back to the RouteE geometry
   const polyline = geometry5 ?? routeeRoute.geometry ?? null;
 
+  // Prefer Mapbox's duration so the picker matches what the Nav SDK shows
+  // once navigation starts; fall back to RouteE's estimate when matching fails.
+  const routeeDurationSec = Math.round((summary.trip_time_minutes ?? 0) * MINUTES_TO_SEC);
+  const durationSec = matching?.duration != null
+    ? Math.round(matching.duration)
+    : routeeDurationSec;
+
   return {
     label,
     distance_km:  (summary.trip_distance_miles ?? 0) * MILES_TO_KM,
-    duration_sec: Math.round((summary.trip_time_minutes ?? 0) * MINUTES_TO_SEC),
+    duration_sec: durationSec,
     energy_kwh:   summary.trip_energy_liquid_gallons != null
       ? summary.trip_energy_liquid_gallons * GALLONS_TO_KWH
       : null,
