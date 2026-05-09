@@ -32,6 +32,15 @@ async function matchRoute(coordinates) {
 
     const radiuses = coordinates.map(() => MATCH_RADIUS_METERS).join(';');
 
+    // Only the first and last tracepoints separate legs; intermediate ones
+    // are pure shape constraints. Without this, Map Matching returns one leg
+    // per pair of consecutive inputs (~99 legs for 100 coords), which the
+    // iOS Nav SDK's RouteResponse decoder rejects against our 2-waypoint
+    // injection (it requires legs.length + 1 === waypoints.length). With
+    // this, we get a single leg whose steps carry Mapbox-emitted banner /
+    // voice instructions verbatim — no client-side collapse or rewrite.
+    const waypointsParam = `0;${coordinates.length - 1}`;
+
     const response = await axios.get(
       `${MAPBOX_BASE}/matching/v5/mapbox/driving/${encodeURIComponent(coordString)}`,
       {
@@ -44,6 +53,7 @@ async function matchRoute(coordinates) {
           voice_units:         'metric',
           annotations:         'duration,distance,speed',
           radiuses,
+          waypoints:           waypointsParam,
           access_token:        MAPBOX_API_KEY,
         },
       },
