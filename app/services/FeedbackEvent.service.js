@@ -3,7 +3,7 @@
 const { serviceClient, models } = require('@database');
 const { FeedbackEventModel, TelemetrySegmentModel } = models;
 
-const { TABLE, FIELDS, SHAP_TO_EVENT_TYPE } = FeedbackEventModel;
+const { TABLE, FIELDS, SHAP_TO_EVENT_TYPE, EVENT_TYPE_TO_SEVERITY, SEVERITIES } = FeedbackEventModel;
 
 async function insert(eventData) {
   return serviceClient
@@ -34,6 +34,7 @@ async function bulkInsertFromSegments(tripId, segments) {
       [FIELDS.TRIP_ID]:      tripId,
       [FIELDS.SEGMENT_ID]:   segment.id,
       [FIELDS.EVENT_TYPE]:   eventType,
+      [FIELDS.SEVERITY]:     EVENT_TYPE_TO_SEVERITY[eventType] || SEVERITIES.INFO,
       [FIELDS.MESSAGE]:      segment._alert || null,
       [FIELDS.TRIGGERED_AT]: new Date().toISOString(),
     });
