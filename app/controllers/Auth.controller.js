@@ -47,4 +47,15 @@ async function getMe(req, res) {
   return Response.success(res, data);
 }
 
-module.exports = { signUp, signIn, signOut, getMe };
+async function refreshSession(req, res) {
+  const { refresh_token } = req.body;
+
+  const { data, error } = await anonClient.auth.refreshSession({ refresh_token });
+  if (error || !data.session) {
+    return Response.error(res, error?.message ?? 'Invalid refresh token', 401);
+  }
+
+  return Response.success(res, AuthDTO.signInDTO(data.user, data.session));
+}
+
+module.exports = { signUp, signIn, signOut, getMe, refreshSession };

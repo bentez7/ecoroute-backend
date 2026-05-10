@@ -26,6 +26,12 @@ router.post('/signin',
 
 router.post('/signout', requireAuth, AuthController.signOut);
 
+router.post('/refresh',
+  body('refresh_token').isString().notEmpty().withMessage('refresh_token is required'),
+  handleValidationErrors,
+  AuthController.refreshSession,
+);
+
 router.get('/me', requireAuth, AuthController.getMe);
 
 module.exports = router;
