@@ -1,25 +1,30 @@
 'use strict';
 
-const { TripService, RouteComparisonService, SegmentService, UserService } = require('@services');
+const {
+  TripService, RouteComparisonService, SegmentService, TelemetryService, UserService,
+} = require('@services');
 const { TripDTO }       = require('@dto');
 const RoutingService    = require('@helpers/RoutingService.helper');
-const { calcCO2 }       = require('@helpers/Emission.helper');
 const Response          = require('@helpers/Response.helper');
 const Logger            = require('@utils/Logger.util');
+
+// FASTSim catalog only ships these 6 models. We default every trip to a
+// petrol sedan; per-vehicle mapping can be wired in later if needed.
+const DEFAULT_FASTSIM_MODEL = '2012_Ford_Fusion';
 
 async function createTrip(req, res) {
   const userId = req.user.id;
   const {
     vehicle_id, started_at,
-    origin_lat, origin_lng, origin_address,
-    dest_lat, dest_lng, dest_address,
+    origin_lat, origin_lng, origin_address, origin_name,
+    dest_lat, dest_lng, dest_address, dest_name,
     route_polyline, fuel_type,
   } = req.body;
 
   const { data, error } = await TripService.create(userId, {
     vehicle_id, started_at,
-    origin_lat, origin_lng, origin_address,
-    dest_lat, dest_lng, dest_address,
+    origin_lat, origin_lng, origin_address, origin_name,
+    dest_lat, dest_lng, dest_address, dest_name,
     route_polyline, fuel_type,
   });
   if (error) return Response.error(res, error.message, 400);
@@ -38,6 +43,19 @@ async function getTrips(req, res) {
     data: TripDTO.tripListDTO(data.data),
     pagination: data.pagination,
   });
+}
+
+async function getTripStats(req, res) {
+  // Optional ?since=<iso>; ignored if not a valid ISO datetime.
+  const rawSince = typeof req.query.since === 'string' ? req.query.since : null;
+  const sinceDate = rawSince ? new Date(rawSince) : null;
+  const since = sinceDate && !Number.isNaN(sinceDate.getTime())
+    ? sinceDate.toISOString()
+    : null;
+
+  const { data, error } = await TripService.getStatsByUserId(req.user.id, { since });
+  if (error) return Response.error(res, error.message, 400);
+  return Response.success(res, data);
 }
 
 async function getTripById(req, res) {
@@ -62,21 +80,31 @@ async function endTrip(req, res) {
   res.status(200).json({ success: true, data: TripDTO.tripDTO(data) });
 
   // Derive trip-level summary + route comparisons in the background.
-  // All inputs are already in the DB — no ML service calls needed here.
   setImmediate(async () => {
     const tripId    = data.id;
     const fuel_type = data.fuel_type;
 
     try {
-      // 1. Fetch segments written during the trip by the real-time ML pipeline
-      const { data: segments } = await SegmentService.getByTripId(tripId);
+      // 1. Fetch segments + raw telemetry in parallel
+      const [segmentsRes, telemetryRes] = await Promise.all([
+        SegmentService.getByTripId(tripId),
+        TelemetryService.getByTripId(tripId),
+      ]);
+      const segments = segmentsRes.data ?? [];
+      const points   = telemetryRes.data ?? [];
 
       // 2. Derive driver profile from per-segment behaviour labels (escalation rule)
-      const driver_profile = deriveDriverProfile(segments ?? []);
+      const driver_profile = deriveDriverProfile(segments);
 
-      // 3. Sum segment energy for trip-level total (null if no segment has energy data)
-      const energy_kwh = sumSegmentEnergy(segments ?? []);
-      const co2_kg     = energy_kwh != null ? calcCO2(energy_kwh, fuel_type) : null;
+      // 3. Actual trip energy & CO2 from FASTSim over the recorded telemetry
+      const { energy_kwh, co2_kg, error: simError } = await RoutingService.simulateTripEnergy({
+        points,
+        model_name: DEFAULT_FASTSIM_MODEL,
+        fuel_type,
+      });
+      if (simError) {
+        Logger.warn(`[Trip] simulate failed for trip ${tripId}: ${simError.message}`);
+      }
 
       // 4. Fetch alternative routes from RouteE Compass and store comparisons
       const { comparisons } = await RoutingService.computeRouteComparisons({
@@ -142,11 +170,6 @@ function deriveDriverProfile(segments) {
   return 'smooth';
 }
 
-// Sum energy_kwh across all segments. Returns null if none of the segments
-// carry energy data (ML service currently does not compute per-segment energy).
-function sumSegmentEnergy(segments) {
-  const values = segments.map(s => s.energy_kwh).filter(v => v != null);
-  return values.length ? values.reduce((acc, v) => acc + v, 0) : null;
-}
-
-module.exports = { createTrip, getTrips, getTripById, endTrip, cancelTrip, updateTrip };
+module.exports = {
+  createTrip, getTrips, getTripStats, getTripById, endTrip, cancelTrip, updateTrip,
+};

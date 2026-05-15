@@ -47,6 +47,8 @@ function _downsample(coords, max) {
  */
 async function _enrichRoute(routeeRoute) {
   const label   = ROUTE_LABEL_MAP[routeeRoute.name] ?? routeeRoute.name;
+  const mergedWith = (routeeRoute.merged_with ?? [])
+    .map((n) => ROUTE_LABEL_MAP[n] ?? n);
   const summary = routeeRoute.summary ?? {};
 
   // Decode Google-encoded polyline → [[lat, lng], ...]
@@ -70,6 +72,7 @@ async function _enrichRoute(routeeRoute) {
 
   return {
     label,
+    merged_with: mergedWith,
     distance_km:  (summary.trip_distance_miles ?? 0) * MILES_TO_KM,
     duration_sec: durationSec,
     energy_kwh:   summary.trip_energy_liquid_gallons != null
@@ -124,12 +127,33 @@ async function searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng, model_
     compassRoutes.map(r => _enrichRoute(r)),
   );
 
-  const routes = results
+  const enriched = results
     .filter(r => r.status === 'fulfilled')
     .map(r => r.value);
 
-  if (routes.length === 0) {
+  if (enriched.length === 0) {
     return { routes: null, error: new Error('Failed to process routes') };
+  }
+
+  // Dedup by post–Map Matching polyline. RouteE Compass can return three
+  // slightly different coordinate sequences that Mapbox then snaps to the
+  // exact same road segments — the routing service's pre-matching dedup
+  // won't catch those, so we collapse them here.
+  const routes = [];
+  const byPolyline = new Map();
+  for (const route of enriched) {
+    const key = route.polyline;
+    if (!key) {
+      routes.push(route);
+      continue;
+    }
+    const existing = byPolyline.get(key);
+    if (existing) {
+      existing.merged_with.push(route.label, ...(route.merged_with ?? []));
+      continue;
+    }
+    byPolyline.set(key, route);
+    routes.push(route);
   }
 
   // Map Matching can fail (matching === null) when the RouteE polyline
@@ -164,6 +188,7 @@ async function searchRoutes({ origin_lat, origin_lng, dest_lat, dest_lng, model_
         routes: [
           {
             label:        'fastest',
+            merged_with:  [],
             distance_km:  matching.distance != null ? matching.distance / 1000 : fallbackEnergy.distance_km,
             duration_sec: matching.duration != null ? Math.round(matching.duration) : fallbackEnergy.duration_sec,
             energy_kwh:   fallbackEnergy.energy_kwh,
@@ -220,4 +245,51 @@ async function computeRouteComparisons({ origin_lat, origin_lng, dest_lat, dest_
   return { comparisons, error: null };
 }
 
-module.exports = { searchRoutes, computeRouteComparisons };
+/**
+ * Run FASTSim on the trip's raw telemetry to get actual trip energy & CO2.
+ * Calls the routing service's /simulate endpoint.
+ *
+ * @param {{
+ *   points:     Array<{ lat: number, lng: number, recorded_at: string }>,
+ *   model_name: string,
+ *   fuel_type:  string,
+ * }} params
+ * @returns {Promise<{ energy_kwh: number|null, co2_kg: number|null, error: Error|null }>}
+ */
+async function simulateTripEnergy({ points, model_name, fuel_type }) {
+  if (!Array.isArray(points) || points.length < 2) {
+    return { energy_kwh: null, co2_kg: null, error: new Error('Not enough telemetry to simulate') };
+  }
+
+  const telemetry = points.map(p => ({
+    lat:       p.lat,
+    lng:       p.lng,
+    timestamp: p.recorded_at,
+  }));
+
+  let response;
+  try {
+    response = await axios.post(
+      `${BASE_URL}/simulate`,
+      { telemetry, model_name },
+      { headers: { 'X-API-Key': ROUTEE_API_KEY } },
+    );
+  } catch (err) {
+    const detail = err.response?.data?.detail || err.message;
+    return { energy_kwh: null, co2_kg: null, error: new Error(`Simulate failed: ${detail}`) };
+  }
+
+  const summary = response.data || {};
+  const fuelGallons = summary.fuel_gallons;
+  const electricityKwh = summary.electricity_kwh;
+
+  const fromFuel = fuelGallons != null ? fuelGallons * GALLONS_TO_KWH : 0;
+  const fromElec = electricityKwh != null ? electricityKwh : 0;
+  const total    = fromFuel + fromElec;
+  const energy_kwh = (fuelGallons != null || electricityKwh != null) ? total : null;
+
+  const co2_kg = energy_kwh != null ? calcCO2(energy_kwh, fuel_type) : null;
+  return { energy_kwh, co2_kg, error: null };
+}
+
+module.exports = { searchRoutes, computeRouteComparisons, simulateTripEnergy };

@@ -49,6 +49,7 @@ function _directionsResponseFromMatching(matching) {
 function routeOptionDTO(route) {
   return {
     label:        route.label,           // 'eco' | 'balanced' | 'fastest'
+    merged_with:  route.merged_with ?? [], // labels of other test_cases that produced this same geometry
     distance_km:  route.distance_km,
     duration_sec: route.duration_sec,
     energy_kwh:        route.energy_kwh ?? null,

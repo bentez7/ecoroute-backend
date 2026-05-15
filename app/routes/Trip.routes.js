@@ -48,6 +48,11 @@ router.get('/',
   requireAuth,
   TripController.getTrips);
 
+// IMPORTANT: declared before /:id so Express doesn't try to validate "stats" as a UUID.
+router.get('/stats',
+  requireAuth,
+  TripController.getTripStats);
+
 router.get('/:id',
   requireAuth, idValidation, handleValidationErrors,
   TripController.getTripById);

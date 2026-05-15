@@ -63,7 +63,9 @@ async function getById(tripId, userId) {
 async function update(tripId, userId, updates) {
   const allowed = {};
   const editable = [
-    FIELDS.ROUTE_POLYLINE, FIELDS.ORIGIN_ADDRESS, FIELDS.DEST_ADDRESS,
+    FIELDS.ROUTE_POLYLINE,
+    FIELDS.ORIGIN_ADDRESS, FIELDS.ORIGIN_NAME,
+    FIELDS.DEST_ADDRESS,   FIELDS.DEST_NAME,
   ];
   for (const field of editable) {
     if (updates[field] !== undefined) allowed[field] = updates[field];
@@ -125,4 +127,33 @@ async function cancelTrip(tripId, userId) {
     .single();
 }
 
-module.exports = { create, getByUserId, getById, update, endTrip, cancelTrip, writeMlResults };
+// Aggregate stats for completed trips. Postgres does the SUMs and COUNT
+// inside a SECURITY DEFINER RPC (see migration 013) so we ship four
+// numbers over the wire instead of every row. PostgREST aggregate
+// functions are disabled by default on hosted Supabase, hence the RPC.
+async function getStatsByUserId(userId, { since = null } = {}) {
+  const { data, error } = await serviceClient.rpc('get_user_trip_stats', {
+    p_user_id: userId,
+    p_since:   since,
+  });
+
+  if (error) return { data: null, error };
+
+  // Postgres RETURNS TABLE always comes back as an array.
+  const row = Array.isArray(data) ? data[0] : data;
+
+  return {
+    data: {
+      total_trips:        Number(row?.total_trips        ?? 0),
+      total_distance_km:  Number(row?.total_distance_km  ?? 0),
+      total_duration_sec: Number(row?.total_duration_sec ?? 0),
+      total_co2_kg:       Number(row?.total_co2_kg       ?? 0),
+    },
+    error: null,
+  };
+}
+
+module.exports = {
+  create, getByUserId, getById, update, endTrip, cancelTrip, writeMlResults,
+  getStatsByUserId,
+};

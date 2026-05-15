@@ -138,4 +138,71 @@ async function searchText({ query, proximity_lat, proximity_lng }) {
   }
 }
 
-module.exports = { searchAutocomplete, searchText };
+/**
+ * Reverse geocode a lat/lng to a human-readable place name using the
+ * Google Geocoding API.
+ *
+ * Returns the most specific named component (e.g. "Monash University Malaysia",
+ * "Jalan Pudu") from the first result's address_components, falling back to
+ * formatted_address when no named point is found.
+ *
+ * @param {{ lat: number, lng: number }} params
+ * @returns {Promise<{ name: string|null, address: string|null, error: Error|null }>}
+ */
+async function reverseGeocode({ lat, lng }) {
+  try {
+    const res = await axios.get(
+      'https://maps.googleapis.com/maps/api/geocode/json',
+      { params: { latlng: `${lat},${lng}`, key: GOOGLE_MAPS_API_KEY, language: 'en' } },
+    );
+
+    const results = res.data.results ?? [];
+    if (results.length === 0) return { name: null, address: null, error: null };
+
+    const first = results[0];
+    const address = first.formatted_address ?? null;
+
+    // Prefer a named point (premise, establishment, point_of_interest) over a road
+    const preferredTypes = ['premise', 'establishment', 'point_of_interest', 'natural_feature', 'airport'];
+    const named = results.find((r) =>
+      r.types.some((t) => preferredTypes.includes(t)),
+    );
+
+    // Pull a meaningful name from address_components. `address_components[0]` is
+    // typically `street_number` (e.g. "46"), which alone is useless — prefer
+    // a named place's first component, else the street/route name, else the
+    // smallest meaningful locality. Fall back to formatted_address up to the
+    // first comma so we never return a bare number.
+    const componentByType = (components, type) =>
+      components?.find((c) => c.types.includes(type))?.long_name ?? null;
+
+    const namePreferenceOrder = [
+      'point_of_interest', 'establishment', 'premise', 'airport',
+      'natural_feature', 'park', 'route', 'neighborhood', 'sublocality',
+      'sublocality_level_1', 'locality',
+    ];
+
+    let name = null;
+    if (named) {
+      const comps = named.address_components ?? [];
+      for (const t of namePreferenceOrder) {
+        name = componentByType(comps, t);
+        if (name) break;
+      }
+    }
+    if (!name) {
+      const comps = first.address_components ?? [];
+      for (const t of namePreferenceOrder) {
+        name = componentByType(comps, t);
+        if (name) break;
+      }
+    }
+    if (!name && address) name = address.split(',')[0];
+
+    return { name, address, error: null };
+  } catch (err) {
+    return { name: null, address: null, error: err };
+  }
+}
+
+module.exports = { searchAutocomplete, searchText, reverseGeocode };
