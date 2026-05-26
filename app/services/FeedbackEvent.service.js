@@ -34,7 +34,9 @@ async function bulkInsertFromSegments(tripId, segments) {
       [FIELDS.TRIP_ID]:      tripId,
       [FIELDS.SEGMENT_ID]:   segment.id,
       [FIELDS.EVENT_TYPE]:   eventType,
-      [FIELDS.SEVERITY]:     EVENT_TYPE_TO_SEVERITY[eventType] || SEVERITIES.INFO,
+      // ML emits severity per behaviour level (moderate→info, aggressive→warning).
+      // Fall back to the event_type table if ML didn't supply one.
+      [FIELDS.SEVERITY]:     segment._severity || EVENT_TYPE_TO_SEVERITY[eventType] || SEVERITIES.INFO,
       [FIELDS.MESSAGE]:      segment._alert || null,
       [FIELDS.TRIGGERED_AT]: new Date().toISOString(),
     });

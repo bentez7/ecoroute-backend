@@ -116,15 +116,38 @@ async function writeMlResults(tripId, results) {
     .single();
 }
 
-async function cancelTrip(tripId, userId) {
+// Cancel an active trip while preserving its data. Distance/duration come from
+// the mobile (same fields it sends on /end) so the post-trip pipeline has the
+// numbers it needs. The DB-level status guard ensures only active trips cancel.
+async function cancelTrip(tripId, userId, { ended_at, distance_km, duration_sec }) {
   return serviceClient
     .from(TABLE)
-    .update({ [FIELDS.STATUS]: TRIP_STATUSES.CANCELLED })
+    .update({
+      [FIELDS.STATUS]:       TRIP_STATUSES.CANCELLED,
+      [FIELDS.ENDED_AT]:     ended_at,
+      [FIELDS.DISTANCE_KM]:  distance_km,
+      [FIELDS.DURATION_SEC]: duration_sec,
+    })
     .eq(FIELDS.ID, tripId)
     .eq(FIELDS.USER_ID, userId)
     .eq(FIELDS.STATUS, TRIP_STATUSES.ACTIVE)
     .select()
     .single();
+}
+
+// Hard-delete an active trip — used by cancelTrip when the user didn't drive
+// far enough for the data to be worth keeping. FK ON DELETE CASCADE on the
+// child tables (raw_telemetry, telemetry_segments, route_comparisons,
+// feedback_events) clears everything in one transaction. Status guard prevents
+// deleting trips that have already been ended or cancelled-with-data.
+async function deleteTrip(tripId, userId) {
+  const { error, count } = await serviceClient
+    .from(TABLE)
+    .delete({ count: 'exact' })
+    .eq(FIELDS.ID, tripId)
+    .eq(FIELDS.USER_ID, userId)
+    .eq(FIELDS.STATUS, TRIP_STATUSES.ACTIVE);
+  return { error, count };
 }
 
 // Aggregate stats for completed trips. Postgres does the SUMs and COUNT
@@ -154,6 +177,6 @@ async function getStatsByUserId(userId, { since = null } = {}) {
 }
 
 module.exports = {
-  create, getByUserId, getById, update, endTrip, cancelTrip, writeMlResults,
-  getStatsByUserId,
+  create, getByUserId, getById, update, endTrip, cancelTrip, deleteTrip,
+  writeMlResults, getStatsByUserId,
 };

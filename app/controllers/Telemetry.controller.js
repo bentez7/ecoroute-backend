@@ -67,11 +67,14 @@ async function bulkInsertTelemetry(req, res) {
       const result = await MlService.analyseSegment(trip_id, points);
       if (!result?.segments?.length) return;
 
-      // Build alert lookup keyed by segment_index — kept separate from the DB
-      // row so unknown columns don't break the Supabase insert.
-      const alertsByIndex = {};
+      // Build alert + severity lookup keyed by segment_index — kept separate
+      // from the DB row so unknown columns don't break the Supabase insert.
+      // ML emits both fields together for non-smooth segments.
+      const feedbackByIndex = {};
       for (const s of result.segments) {
-        if (s.alert) alertsByIndex[s.segment_index] = s.alert;
+        if (s.alert) {
+          feedbackByIndex[s.segment_index] = { alert: s.alert, severity: s.severity };
+        }
       }
 
       // Map ML response fields to the DB schema, attaching segment geometry so
@@ -103,10 +106,12 @@ async function bulkInsertTelemetry(req, res) {
       const { data: segments, error: segError } = await SegmentService.bulkInsert(trip_id, mapped);
       if (segError) return;
 
-      // Re-attach alerts to the DB-returned segments (which now have IDs) so
-      // FeedbackEventService can write them to feedback_events.message.
+      // Re-attach alert + severity to the DB-returned segments (which now have IDs)
+      // so FeedbackEventService can write them to feedback_events.
       for (const seg of segments) {
-        seg._alert = alertsByIndex[seg.segment_index] || null;
+        const fb = feedbackByIndex[seg.segment_index];
+        seg._alert    = fb?.alert    || null;
+        seg._severity = fb?.severity || null;
       }
 
       await FeedbackEventService.bulkInsertFromSegments(trip_id, segments);

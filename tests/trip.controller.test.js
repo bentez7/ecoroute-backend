@@ -8,7 +8,7 @@ jest.mock('@database', () => ({
   models:        {},
 }));
 jest.mock('@services', () => ({
-  TripService:           { create: jest.fn(), getByUserId: jest.fn(), getById: jest.fn(), endTrip: jest.fn(), cancelTrip: jest.fn(), update: jest.fn(), writeMlResults: jest.fn() },
+  TripService:           { create: jest.fn(), getByUserId: jest.fn(), getById: jest.fn(), endTrip: jest.fn(), cancelTrip: jest.fn(), deleteTrip: jest.fn(), update: jest.fn(), writeMlResults: jest.fn() },
   SegmentService:        { getByTripId: jest.fn() },
   RouteComparisonService: { bulkInsert: jest.fn() },
   UserService:           { incrementCO2: jest.fn() },
@@ -137,23 +137,54 @@ describe('Trip Controller', () => {
 
   // --- cancelTrip ---
   describe('cancelTrip', () => {
-    it('returns 200 with cancelled trip', async () => {
-      const cancelled = { ...FAKE_TRIP, status: 'cancelled' };
-      TripService.cancelTrip.mockResolvedValue({ data: cancelled, error: null });
+    const CANCEL_BODY_ABOVE = { ended_at: '2026-04-09T08:35:00Z', distance_km: 3.2, duration_sec: 600 };
+    const CANCEL_BODY_BELOW = { ended_at: '2026-04-09T08:30:30Z', distance_km: 0.1, duration_sec: 30 };
 
-      const req = mockReq({ params: { id: 'trip-1' } });
+    it('hard-deletes trip when distance is below threshold', async () => {
+      TripService.deleteTrip.mockResolvedValue({ error: null, count: 1 });
+
+      const req = mockReq({ params: { id: 'trip-1' }, body: CANCEL_BODY_BELOW });
       const res = mockRes();
 
       await TripController.cancelTrip(req, res);
 
+      expect(TripService.deleteTrip).toHaveBeenCalledWith('trip-1', 'user-uuid-1');
+      expect(TripService.cancelTrip).not.toHaveBeenCalled();
+      expect(res._status).toBe(200);
+      expect(res._json.data.deleted).toBe(true);
+    });
+
+    it('returns 404 when below threshold and no rows deleted', async () => {
+      TripService.deleteTrip.mockResolvedValue({ error: null, count: 0 });
+
+      const req = mockReq({ params: { id: 'trip-1' }, body: CANCEL_BODY_BELOW });
+      const res = mockRes();
+
+      await TripController.cancelTrip(req, res);
+
+      expect(res._status).toBe(404);
+      expect(res._json.error).toBe('Trip not found or not active');
+    });
+
+    it('marks trip cancelled and returns it when distance is above threshold', async () => {
+      const cancelled = { ...FAKE_TRIP, status: 'cancelled', ...CANCEL_BODY_ABOVE };
+      TripService.cancelTrip.mockResolvedValue({ data: cancelled, error: null });
+
+      const req = mockReq({ params: { id: 'trip-1' }, body: CANCEL_BODY_ABOVE });
+      const res = mockRes();
+
+      await TripController.cancelTrip(req, res);
+
+      expect(TripService.cancelTrip).toHaveBeenCalledWith('trip-1', 'user-uuid-1', CANCEL_BODY_ABOVE);
+      expect(TripService.deleteTrip).not.toHaveBeenCalled();
       expect(res._status).toBe(200);
       expect(res._json.data.status).toBe('cancelled');
     });
 
-    it('returns 404 when trip is not active', async () => {
+    it('returns 404 when above threshold but trip is not active', async () => {
       TripService.cancelTrip.mockResolvedValue({ data: null, error: { message: 'no rows' } });
 
-      const req = mockReq({ params: { id: 'trip-1' } });
+      const req = mockReq({ params: { id: 'trip-1' }, body: CANCEL_BODY_ABOVE });
       const res = mockRes();
 
       await TripController.cancelTrip(req, res);

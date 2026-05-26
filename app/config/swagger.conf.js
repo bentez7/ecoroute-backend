@@ -602,13 +602,39 @@ const options = {
         patch: {
           tags: ['Trips'],
           summary: 'Cancel an active trip',
-          description: 'Sets status to "cancelled". Only succeeds if the trip is currently active.',
+          description:
+            'Takes the same body as /end. If distance_km is below the keep threshold (0.5 km) ' +
+            'the trip is hard-deleted (cascade clears telemetry, segments, feedback, comparisons). ' +
+            'Otherwise the trip is marked "cancelled", distance/duration are recorded, and the ' +
+            'same post-trip pipeline as /end runs in the background (energy, CO2, driver profile, ' +
+            'route comparisons). Only succeeds if the trip is currently active.',
           security: [{ bearerAuth: [] }],
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['ended_at', 'distance_km', 'duration_sec'],
+                  properties: {
+                    ended_at:     { type: 'string', format: 'date-time' },
+                    distance_km:  { type: 'number', minimum: 0 },
+                    duration_sec: { type: 'integer', minimum: 0 },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: 'Trip cancelled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Trip' } } } },
+            200: {
+              description:
+                'Either { deleted: true } when the trip was hard-deleted (below threshold), ' +
+                'or the updated trip with status "cancelled" when the data was kept.',
+            },
             401: { description: 'Unauthorised' },
             404: { description: 'Trip not found or not active' },
+            422: { description: 'Validation error' },
           },
         },
       },

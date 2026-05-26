@@ -38,6 +38,10 @@ const endTripValidation = [
   body('duration_sec').isInt({ min: 0 }).withMessage('duration_sec must be a non-negative integer'),
 ];
 
+// Cancel takes the same body as end so the controller can decide whether to
+// keep the trip (and run post-trip analysis) or hard-delete it.
+const cancelTripValidation = endTripValidation;
+
 // --- Routes ---
 
 router.post('/',
@@ -63,7 +67,7 @@ router.patch('/:id/end',
   TripController.endTrip);
 
 router.patch('/:id/cancel',
-  requireAuth, idValidation, handleValidationErrors,
+  requireAuth, cancelTripValidation, handleValidationErrors,
   TripController.cancelTrip);
 
 router.patch('/:id',

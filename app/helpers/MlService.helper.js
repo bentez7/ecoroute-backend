@@ -25,8 +25,9 @@ async function post(path, body) {
 // ML service endpoint: POST /analyse/segment
 // Body:   { trip_id, points: [{ recorded_at, lat, lng, speed_ms, altitude_m }] }
 // Result: { segments: [{ segment_index, started_at, ended_at, behaviour_label,
-//                        confidence, alert, avg_speed_kmh, accel_variance,
+//                        confidence, alert, severity, avg_speed_kmh, accel_variance,
 //                        braking_frequency, idle_time_pct, shap_top_feature }] }
+// alert + severity are null for smooth windows; non-null pair for moderate/aggressive.
 async function analyseSegment(tripId, points) {
   try {
     return await post('/analyse/segment', { trip_id: tripId, points });
