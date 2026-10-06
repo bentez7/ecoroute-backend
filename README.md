@@ -1,31 +1,33 @@
 # EcoRoute Backend
 
-Supabase + Express backend for the **Carbon Aware Route Planner** — a behaviour-aware carbon tracking mobile app that combines FASTSim energy simulation, XGBoost driving behaviour classification, and Google Maps route comparison to help drivers reduce emissions.
+**The REST API and orchestration layer for EcoRoute, a carbon-aware driving app that plans lower-energy routes, coaches drivers in real time, and calculates the CO₂ of every trip from smartphone GPS alone.**
 
----
+Part of **EcoRoute**, our Final Year Project at Monash University Malaysia (2026):
 
-## Architecture
+| Repo | Role |
+|---|---|
+| [ecoroute-mobile](https://github.com/bentez7/ecoroute-mobile) | iOS/Android app: route planning, navigation, live coaching, trip history |
+| **ecoroute-backend** (this repo) | REST API, auth, database, orchestration (Node.js · Express · Supabase) |
+| [ecoroute-ml](https://github.com/bentez7/ecoroute-ml) | Driving-behaviour classifier with explainable feedback (XGBoost · SHAP · FastAPI) |
+| [ecoroute-routing-engine](https://github.com/bentez7/ecoroute-routing-engine) | Energy-aware routing and trip energy simulation (NREL RouteE Compass · FASTSim) |
 
+## What this service does
+
+- **Auth and data:** Supabase Auth plus PostgreSQL with row-level security on every table (users, vehicles, trips, raw telemetry, 10-second behaviour segments, coaching events, route comparisons).
+- **Route planning:** calls the routing engine for *fastest / lowest-energy / balanced* routes, then snaps them to Mapbox via Map Matching (with a Directions fallback) so the app can run turn-by-turn navigation.
+- **Live coaching pipeline:** receives 10-second telemetry batches from the phone, sends them to the ML service, stores the labelled segments, and inserts coaching events that reach the phone over **Supabase Realtime** in about a second.
+- **Post-trip analysis:** returns immediately when a trip ends, then asynchronously runs FASTSim on the recorded GPS trace, converts the energy to CO₂, compares it to the eco route, and updates the user's lifetime footprint through a race-free `SECURITY DEFINER` RPC.
+- **Docs and tests:** Swagger UI at `/api-docs`, Jest tests for controllers, middleware and emission helpers, and 13 versioned SQL migrations.
+
+```mermaid
+flowchart LR
+    M["ecoroute-mobile"] -- "REST · 10 s telemetry batches" --> B["ecoroute-backend"]
+    B -- "POST /analyse/segment" --> ML["ecoroute-ml"]
+    B -- "POST /route · /simulate" --> R["ecoroute-routing-engine"]
+    B -. "Supabase Realtime (nudges)" .-> M
 ```
-Mobile App (Flutter / React Native)
-    │
-    ├── Streams raw GPS + motion telemetry (0.5 Hz)
-    ├── POSTs trip data and telemetry to this backend
-    │
-    ▼
-EcoRoute Backend (this repo)
-    ├── Supabase Auth (email/password)
-    ├── PostgreSQL database + RLS
-    └── REST API
-            │
-            ▼
-    ML Repo (separate)
-    ├── FASTSim — energy & CO2 simulation
-    ├── XGBoost + SHAP — driving behaviour classification
-    └── POSTs computed results back to this backend
-```
 
-The ML repo is a separate service. It receives telemetry, computes results, and writes back to this backend via service-role-protected endpoints. It has no direct database access.
+**Team:** Teng Kong Cheng, Wong Wei Jian, Benjamin Tan En Zhe. Teng Kong Cheng built most of this service. My own work (Benjamin) was mainly on the [mobile app](https://github.com/bentez7/ecoroute-mobile); here I added the Mapbox Directions fallback and speed-band energy estimate in `RoutingService.helper.js`.
 
 ---
 
@@ -38,6 +40,9 @@ The ML repo is a separate service. It receives telemetry, computes results, and 
 | Language | JavaScript (CommonJS) |
 | Database | Supabase (PostgreSQL 15) |
 | Auth | Supabase Auth |
+| Realtime | Supabase Realtime |
+| Maps | Mapbox Map Matching / Directions, Google Places |
+| Testing | Jest, Swagger UI |
 | Path aliases | module-alias |
 
 ---
@@ -52,7 +57,7 @@ app/
 ├── services/        # Business logic and database operations per resource
 ├── routes/          # Express routers with middleware guards
 ├── middleware/       # Auth JWT, service role, error handler, validation
-├── helpers/         # Response shape, CO2 emission factors
+├── helpers/         # Routing, ML, Mapbox, Places clients; CO2 emission factors
 └── utils/           # Winston logger
 supabase/
 └── migrations/      # SQL schema, RLS policies, indexes, triggers
@@ -69,11 +74,11 @@ server.js            # Entry point
 |---|---|---|
 | `users` | Auth trigger | User profiles — extends Supabase auth.users |
 | `vehicles` | Mobile app | User-owned vehicles with FASTSim parameters |
-| `trips` | Mobile app + ML repo | One row per completed trip |
-| `raw_telemetry` | Mobile app | 0.5 Hz GPS + motion stream, pruned after 30 days |
-| `telemetry_segments` | ML repo | 60-second behavioural windows with XGBoost labels |
-| `route_comparisons` | ML repo | FASTSim analysis of alternative routes |
-| `feedback_events` | Backend (auto) | Behavioural nudges from suboptimal driving segments |
+| `trips` | Mobile app + post-trip pipeline | One row per trip; energy, CO₂ and driver profile filled in asynchronously |
+| `raw_telemetry` | Mobile app | 1 Hz GPS stream, pruned after 30 days |
+| `telemetry_segments` | Backend (from ML service) | 10-second behavioural windows with XGBoost label, confidence, SHAP top feature, polyline |
+| `route_comparisons` | Post-trip pipeline | Actual trip vs. eco/fastest alternatives |
+| `feedback_events` | Backend (auto) | Coaching nudges, published to the app over Supabase Realtime |
 
 ---
 
@@ -101,7 +106,10 @@ server.js            # Entry point
 | POST | `/api/trips` | JWT | Create a trip |
 | GET | `/api/trips` | JWT | List user's trips |
 | GET | `/api/trips/:id` | JWT | Get a trip |
+| GET | `/api/trips/stats` | JWT | Lifetime stats (trips, distance, CO₂) |
 | PATCH | `/api/trips/:id` | JWT | Update a trip |
+| PATCH | `/api/trips/:id/end` | JWT | End a trip and start the post-trip pipeline |
+| PATCH | `/api/trips/:id/cancel` | JWT | Cancel a trip |
 
 ### Telemetry
 | Method | Path | Auth | Description |
@@ -109,7 +117,15 @@ server.js            # Entry point
 | POST | `/api/telemetry` | JWT | Bulk insert raw telemetry points |
 | GET | `/api/telemetry/trip/:tripId` | JWT | Get telemetry for a trip |
 
-### Segments, Routes, Feedback
+### Places & Routes
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/places/autocomplete` | JWT | Place autocomplete |
+| POST | `/api/places/search` | JWT | Place search |
+| GET | `/api/places/reverse-geocode` | JWT | Coordinates → address |
+| POST | `/api/routes/search` | JWT | Fastest / lowest-energy / balanced route alternatives |
+
+### Segments, Route comparisons, Feedback
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/api/segments/trip/:tripId` | JWT | Get segments for a trip |
@@ -117,13 +133,6 @@ server.js            # Entry point
 | GET | `/api/routes/trip/:tripId` | JWT | Get route comparisons for a trip |
 | GET | `/api/feedback/trip/:tripId` | JWT | Get feedback events for a trip |
 | PATCH | `/api/feedback/:id/acknowledge` | JWT | Acknowledge a feedback nudge |
-
-### ML Writeback (service role key required)
-| Method | Path | Description |
-|---|---|---|
-| PATCH | `/api/ml/trips/:tripId/results` | Write energy, CO2, driver profile |
-| POST | `/api/ml/trips/:tripId/segments` | Write telemetry segments |
-| POST | `/api/ml/trips/:tripId/routes` | Write route comparisons |
 
 ### Health
 | Method | Path | Description |
@@ -151,8 +160,6 @@ Most endpoints require a Supabase JWT. To test them:
 3. Paste the token into the **bearerAuth** field (do not include the word "Bearer" — Swagger adds it automatically)
 4. Click **Authorize** → all subsequent requests will include the token
 
-For ML writeback endpoints, use the **serviceRoleKey** field and paste your `SUPABASE_SERVICE_ROLE_KEY` value.
-
 ---
 
 ## Getting Started
@@ -173,15 +180,7 @@ cp samples/.env.sample .env
 
 ### Environment Variables
 
-```env
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_ANON_KEY=<anon-public-key>
-SUPABASE_SERVICE_ROLE_KEY=<service-role-secret-key>
-GOOGLE_MAPS_API_KEY=<your-maps-api-key>
-PORT=3000
-NODE_ENV=development
-CORS_ORIGINS=http://localhost:3000
-```
+See `samples/.env.sample`. You need Supabase (URL, anon key, service-role key), Mapbox and Google Maps keys, and the URLs and keys for the [routing engine](https://github.com/bentez7/ecoroute-routing-engine) and [ML service](https://github.com/bentez7/ecoroute-ml).
 
 ### Run
 
@@ -191,13 +190,16 @@ npm run dev
 
 # Production
 npm start
+
+# Tests
+npm test
 ```
 
 ---
 
 ## Database Migration
 
-The full schema is in `supabase/migrations/001_initial_schema.sql`. It includes all tables, indexes, RLS policies, and the `handle_new_user` trigger that auto-creates a `public.users` profile on signup.
+The schema is built up by the numbered files in `supabase/migrations/` (001–013). The first one includes all tables, indexes, RLS policies, and the `handle_new_user` trigger that auto-creates a `public.users` profile on signup.
 
 Apply it via the Supabase dashboard or CLI:
 
