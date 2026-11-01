@@ -27,7 +27,7 @@ flowchart LR
     B -. "Supabase Realtime (nudges)" .-> M
 ```
 
-**Team:** Teng Kong Cheng, Wong Wei Jian, Benjamin Tan En Zhe. Teng Kong Cheng built most of this service. My own work (Benjamin) was mainly on the [mobile app](https://github.com/bentez7/ecoroute-mobile); here I added the Mapbox Directions fallback and speed-band energy estimate in `RoutingService.helper.js`.
+**Team:** Built by a team of three as our Final Year Project at Monash University Malaysia (2026).
 
 ---
 
